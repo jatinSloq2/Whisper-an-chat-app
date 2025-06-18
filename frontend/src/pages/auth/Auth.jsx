@@ -4,18 +4,79 @@ import victory from "../../assets/victory.svg";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
+import { LOGIN_ROUTES, SIGNUP_ROUTES } from "@/utils/constant";
+import { useNavigate } from "react-router-dom";
+import { useAppStore } from "@/store";
 
 const Auth = () => {
+  const navigate = useNavigate();
+  const { setUserInfo } = useAppStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const validateSignup = () => {
+    if (!email.length) {
+      toast.error("Email is required");
+      return false;
+    }
+    if (!password.length) {
+      toast.error("Password is required");
+      return false;
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return false;
+    }
+    return true;
+  };
+
+  const validateLogin = () => {
+    if (!email.length) {
+      toast.error("Email is required");
+      return false;
+    }
+    if (!password.length) {
+      toast.error("Password is required");
+      return false;
+    }
+    return true;
+  };
+
   const handleLogin = async () => {
-    console.log("Login with:", { email, password });
+    if (!validateLogin()) return;
+    const res = await apiClient.post(LOGIN_ROUTES, {
+      email,
+      password,
+    });
+    if (res.data.user.id) {
+      setUserInfo(res.data.user);
+      if (res.data.user.profileSetup) {
+        toast.success("Login successful!");
+        navigate("/chat");
+      } else {
+        toast.success("Login successful! Please complete your profile setup.");
+        navigate("/profile");
+      }
+    }
   };
 
   const handleSignup = async () => {
-    console.log("Signup with:", { email, password, confirmPassword });
+    if (!validateSignup()) return;
+    const res = await apiClient.post(SIGNUP_ROUTES, {
+      email,
+      password,
+    });
+    if (res.status === 201) {
+      setUserInfo(res.data.user);
+      toast.success("Signup successful!");
+      navigate("/profile");
+    } else {
+      toast.error("Signup failed. Please try again.");
+    }
+    console.log(res);
   };
 
   return (
