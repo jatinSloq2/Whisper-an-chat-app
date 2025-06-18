@@ -4,6 +4,8 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
+import authRouter from './routes/auth.routes.js';
+
 dotenv.config()
 
 
@@ -20,6 +22,8 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
+// Routes
+app.use('/api/auth', authRouter);
 
 // Connect to MongoDB
 mongoose.connect(MONGO_URI, {
