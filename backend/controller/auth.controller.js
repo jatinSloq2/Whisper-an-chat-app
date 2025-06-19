@@ -156,8 +156,6 @@ export const addProfileImage = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
-
-
 export const removeProfileImage = async (req, res) => {
     const userId = req.userId;
     try {
@@ -179,3 +177,19 @@ export const removeProfileImage = async (req, res) => {
 
     }
 }
+
+export const logout = (req, res) => {
+    try {
+        res.clearCookie("jwt", "", {
+            httpOnly: true,
+            secure: false,
+            sameSite: "Lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/',
+        });
+        return res.status(200).json({ message: "Logged out successfully" });
+    } catch (error) {
+        console.error("Logout error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};

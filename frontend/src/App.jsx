@@ -8,11 +8,16 @@ import { apiClient } from "./lib/api-client";
 import { GET_USER_INFO } from "./utils/constant";
 
 function App() {
-  const PrivateRoutes = ({ children }) => {
-    const { userInfo } = useAppStore();
-    const isAuthenticated = !!userInfo;
-    return isAuthenticated ? children : <Navigate to={"/auth"} />;
-  };
+  
+const ProtectedRoute = ({ children }) => {
+  const { userInfo } = useAppStore();
+
+  if (!userInfo) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  return children;
+};
 
   const AuthRoute = ({ children }) => {
     const { userInfo } = useAppStore();
@@ -64,17 +69,17 @@ function App() {
           <Route
             path="/chat"
             element={
-              <PrivateRoutes>
+              <ProtectedRoute>
                 <Chat />
-              </PrivateRoutes>
+              </ProtectedRoute>
             }
           />
           <Route
             path="/profile"
             element={
-              <PrivateRoutes>
+              <ProtectedRoute>
                 <Profile />
-              </PrivateRoutes>
+              </ProtectedRoute>
             }
           />
           <Route path="*" element={<Navigate to={"/auth"} />} />
