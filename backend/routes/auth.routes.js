@@ -1,13 +1,17 @@
 import express from 'express';
-import { getUserInfo, login, signup, updateProfile } from '../controller/auth.controller.js';
+import { getUserInfo, login, signup, updateProfile, addProfileImage, removeProfileImage } from '../controller/auth.controller.js';
 import { get } from 'mongoose';
 import { verifyToken } from '../middlewares/authMiddleware.js';
+import multer from 'multer';
 
 const authRouter = express.Router();
+export const upload = multer({ dest: 'uploads/profiles/' });
 
 authRouter.post('/signup', signup);
 authRouter.post("/login", login);
 authRouter.get("/user-info", verifyToken, getUserInfo);
 authRouter.put("/update-user-info", verifyToken, updateProfile);
+authRouter.put("/upload-profile-image", verifyToken, upload.single("profileImage"), addProfileImage)
+authRouter.delete("/remove-profile-image", verifyToken, removeProfileImage);
 
 export default authRouter;
