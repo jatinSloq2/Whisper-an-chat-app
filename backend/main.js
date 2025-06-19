@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
 import authRouter from './routes/auth.routes.js';
+import contactRouter from './routes/contact.routes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -31,6 +32,7 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/contact', contactRouter);
 
 // Connect to MongoDB
 mongoose.connect(MONGO_URI, {
