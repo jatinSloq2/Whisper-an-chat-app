@@ -1,4 +1,10 @@
-export const createAuthSlice = (set, ) => ({
+export const createAuthSlice = (set) => ({
     userInfo: undefined,
-    setUserInfo: (userInfo) => set({ userInfo }),
-})
+    setUserInfo: (update) =>
+        set((state) => ({
+            userInfo:
+                typeof update === "function"
+                    ? update(state.userInfo)
+                    : { ...state.userInfo, ...update },
+        })),
+});

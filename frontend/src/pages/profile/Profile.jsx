@@ -1,5 +1,5 @@
 import { useAppStore } from "@/store";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoArrowBack } from "react-icons/io5";
 import { Avatar } from "@/components/ui/avatar";
@@ -10,7 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { apiClient } from "@/lib/api-client";
-import { UPDATE_USER_INFO } from "@/utils/constant";
+import {
+  HOST,
+  REMOVE_PROFILEIMAGE,
+  UPDATE_USER_INFO,
+  UPLOAD_PROFILE_IMAGE,
+} from "@/utils/constant";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -20,13 +25,19 @@ const Profile = () => {
   const [image, setImage] = useState(null);
   const [hovered, setHovered] = useState(false);
   const [selectedColor, setSelectedColor] = useState(0);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (userInfo?.profileSetup) {
       setFirstName(userInfo.firstName || "");
       setLastName(userInfo.lastName || "");
-      setImage(userInfo.image || null);
       setSelectedColor(userInfo.color ?? 0);
+    }
+    if (userInfo.image) {
+      const parts = userInfo.image.split("/");
+      const encodedFileName = encodeURIComponent(parts.pop());
+      const cleanPath = parts.join("/");
+      setImage(`${HOST}/${cleanPath}/${encodedFileName}`);
     }
   }, [
     userInfo.firstName,
@@ -71,6 +82,53 @@ const Profile = () => {
     }
   };
 
+  const handleFileInputClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const imageChangeHandler = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("profileImage", file);
+
+    try {
+      const res = await apiClient.put(UPLOAD_PROFILE_IMAGE, formData);
+      console.log(res);
+
+      if (res.status === 200 && res.data?.image) {
+        setUserInfo((prev) => ({
+          ...prev,
+          image: res.data.image,
+        }));
+
+        const imagePath = res.data.image;
+        const parts = imagePath.split("/");
+        const encodedFileName = encodeURIComponent(parts.pop());
+        const cleanPath = parts.join("/");
+        setImage(`${HOST}/${cleanPath}/${encodedFileName}`);
+        console.log(`${HOST}/${cleanPath}/${encodedFileName}`);
+        toast.success("Image uploaded successfully");
+        console.log("image", image);
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    }
+  };
+  const handleDeleteImage = async () => {
+    try {
+      const res = await apiClient.delete(REMOVE_PROFILEIMAGE);
+      if (res.status === 200) {
+        setUserInfo({ ...userInfo, image: null });
+        toast.success("Image Removed Successfully");
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to remove image");
+    }
+  };
+
   return (
     <div className="bg-[#1b1c24] min-h-screen flex flex-col items-center justify-center px-4 py-10">
       {/* Back Icon */}
@@ -80,7 +138,6 @@ const Profile = () => {
           onClick={() => navigate(-1)}
         />
       </div>
-
       {/* Main Content */}
       <div className="grid grid-cols-1 md:grid-cols-2 w-full max-w-5xl gap-10">
         {/* Avatar + Color Picker */}
@@ -111,7 +168,10 @@ const Profile = () => {
 
             {/* Hover Overlay */}
             {hovered && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full"
+                onClick={image ? handleDeleteImage : handleFileInputClick}
+              >
                 {image ? (
                   <FaTrash className="text-white text-3xl cursor-pointer" />
                 ) : (
@@ -120,7 +180,14 @@ const Profile = () => {
               </div>
             )}
           </div>
-
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={imageChangeHandler}
+            name="profileImage"
+            accept=".png, .jpg, .jpeg, .svg, .webp"
+          />
           {/* Color Selection */}
           <div className="flex gap-3 flex-wrap justify-center">
             {colors.map((color, index) => (
