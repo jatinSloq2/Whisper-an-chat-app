@@ -1,5 +1,6 @@
 import { useSocket } from "@/context/socketContext";
-import { useAppStore } from "@/store";
+import { useAppStore } from "@/store"; // Only for userInfo
+import { useMessages } from "@/context/MessagesContext";
 import EmojiPicker from "emoji-picker-react";
 import React, { useEffect, useRef, useState } from "react";
 import { GrAttachment } from "react-icons/gr";
@@ -9,7 +10,9 @@ import { RiEmojiStickerLine } from "react-icons/ri";
 const Message_bar = () => {
   const emojiRef = useRef();
   const socket = useSocket();
-  const { selectedChatType, selectedChatData, userInfo } = useAppStore();
+  const { userInfo } = useAppStore(); 
+  const { chatType, chatData } = useMessages();
+
   const [message, setMessage] = useState("");
   const [showEmojiPickerOpen, setShowEmojiPickerOpen] = useState(false);
 
@@ -23,23 +26,31 @@ const Message_bar = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [emojiRef]);
+  }, []);
 
   const handleAddEmoji = (emoji) => {
     setMessage((msg) => msg + emoji.emoji);
   };
 
   const handleSendMessage = () => {
-    if (selectedChatType === "contact") {
-      socket.emit("sendMessage", {
-        sender: userInfo.id,
-        content: message,
-        recipient: selectedChatData._id,
-        messageType: "text",
-        fileUrl: undefined,
-      });
-    }
-  };
+  if (!message.trim()) return;
+  if (!socket) {
+    console.warn("❌ No socket connection");
+    return;
+  }
+
+  if (chatType === "contact") {
+    socket.emit("sendMessage", {
+      sender: userInfo.id,
+      content: message,
+      recipient: chatData._id,
+      messageType: "text",
+      fileUrl: undefined,
+    });
+
+    setMessage(""); 
+  }
+};
 
   return (
     <div className="h-[10vh] bg-[#1c1d25] flex justify-center items-center px-8 mb-6 gap-6">
@@ -48,32 +59,32 @@ const Message_bar = () => {
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          name=""
-          className="flex-1 p-5 bg-transparent rounded-md focus:border-none focus:outline-none"
+          className="flex-1 p-5 bg-transparent rounded-md focus:outline-none"
           placeholder="Type your message here..."
         />
-        <button className="text-neutral-500 focus:outline-none focus:border-none focus:text-white duration-300 transition-all">
+        <button className="text-neutral-500 hover:text-white transition-all">
           <GrAttachment className="text-2xl" />
         </button>
         <div className="relative">
           <button
-            className="text-neutral-500 focus:outline-none focus:border-none focus:text-white duration-300 transition-all"
+            className="text-neutral-500 hover:text-white transition-all"
             onClick={() => setShowEmojiPickerOpen(!showEmojiPickerOpen)}
           >
             <RiEmojiStickerLine className="text-2xl" />
           </button>
-          <div className="absolute bottom-16 right-0" ref={emojiRef}>
-            <EmojiPicker
-              theme="dark"
-              open={showEmojiPickerOpen}
-              onEmojiClick={handleAddEmoji}
-              autoFocusSearch={false}
-            />
-          </div>
+          {showEmojiPickerOpen && (
+            <div className="absolute bottom-16 right-0" ref={emojiRef}>
+              <EmojiPicker
+                theme="dark"
+                onEmojiClick={handleAddEmoji}
+                autoFocusSearch={false}
+              />
+            </div>
+          )}
         </div>
       </div>
       <button
-        className="bg-[#8417ff] rounded-md flex items-center justify-center p-5 hover:bg-[#741bda] focus:outline-none focus:border-none focus:bg-[#741bda] duration-300 transition-all"
+        className="bg-[#8417ff] rounded-md flex items-center justify-center p-5 hover:bg-[#741bda] transition-all"
         onClick={handleSendMessage}
       >
         <IoSend className="text-2xl" />

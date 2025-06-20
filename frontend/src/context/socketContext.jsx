@@ -1,48 +1,41 @@
 import { useAppStore } from "@/store";
 import { HOST } from "@/utils/constant";
-import { createContext, useEffect, useRef, useContext } from "react";
+import { createContext, useEffect, useRef, useContext, useState } from "react";
 import { io } from "socket.io-client";
+import { useMessages } from "@/context/MessagesContext";
 
 const SocketContext = createContext(null);
 
-export const useSocket = () => {
-  return useContext(SocketContext);
-};
+export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
-  const socket = useRef(null);
+  const socketRef = useRef(null);
   const { userInfo } = useAppStore();
+  const { addMessage, chatType, chatData } = useMessages();
+  const [socketInstance, setSocketInstance] = useState(null); 
 
   useEffect(() => {
     if (userInfo) {
-      socket.current = io(HOST, {
+      const socket = io(HOST, {
         query: { userId: userInfo.id },
       });
 
-      socket.current.on("connect", () => {
-        console.log("Connected to Socket Server");
+      socketRef.current = socket;
+      setSocketInstance(socket); 
+
+      socket.on("connect", () => {
+        console.log("✅ Connected to Socket Server");
       });
 
-      const handleReceiveMessage = (message) => {
-        const { selectedChatType, selectedChatData, addMessage } =
-          useAppStore.getState();
+      socket.on("receiveMessage", (message) => {
+        if (!chatData || !message) return;
 
-        if (!selectedChatData || !message) return;
-
-        // Normalize sender and recipient IDs
-        const senderId =
-          typeof message.sender === "object"
-            ? message.sender._id
-            : message.sender;
-        const recipientId =
-          typeof message.recipient === "object"
-            ? message.recipient._id
-            : message.recipient;
-
-        const chatId = selectedChatData._id || selectedChatData.id;
+        const senderId = typeof message.sender === "object" ? message.sender._id : message.sender;
+        const recipientId = typeof message.recipient === "object" ? message.recipient._id : message.recipient;
+        const chatId = chatData._id || chatData.id;
 
         if (
-          selectedChatType === "contact" &&
+          chatType === "contact" &&
           (chatId === senderId || chatId === recipientId)
         ) {
           console.log("✅ Message matched and added", message);
@@ -50,18 +43,17 @@ export const SocketProvider = ({ children }) => {
         } else {
           console.log("❌ Message ignored", message);
         }
-      };
-
-      socket.current.on("receiveMessage", handleReceiveMessage);
+      });
 
       return () => {
-        socket.current.disconnect();
+        socket.disconnect();
+        setSocketInstance(null);
       };
     }
-  }, [userInfo]);
+  }, [userInfo, addMessage, chatType, chatData]);
 
   return (
-    <SocketContext.Provider value={socket.current}>
+    <SocketContext.Provider value={socketInstance}>
       {children}
     </SocketContext.Provider>
   );

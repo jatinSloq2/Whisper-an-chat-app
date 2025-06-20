@@ -21,11 +21,14 @@ import { HOST, SEARCH_CONTACTS } from "@/utils/constant";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { useAppStore } from "@/store";
+import { useMessages } from "@/context/MessagesContext"; 
 
 const NewDm = () => {
-  const { setSelectedChatType, setSelectedChatData } = useAppStore();
+  const { setChatType, setChatData, setMessages } = useMessages(); // ✅
+
   const [openNewContactModal, setOpenNewContactModal] = useState(false);
   const [searchedContacts, setsearchedContacts] = useState([]);
+
   const searchContact = async (searchTerm) => {
     try {
       if (searchTerm.length > 0) {
@@ -36,13 +39,16 @@ const NewDm = () => {
       } else {
         setsearchedContacts([]);
       }
-    } catch (error) {}
+    } catch (error) {
+      console.error("Error searching contacts:", error);
+    }
   };
 
   const selectContact = (contact) => {
     setOpenNewContactModal(false);
-    setSelectedChatType("contact");
-    setSelectedChatData(contact);
+    setChatType("contact");
+    setChatData(contact);
+    setMessages([]);
     setsearchedContacts([]);
   };
   return (
