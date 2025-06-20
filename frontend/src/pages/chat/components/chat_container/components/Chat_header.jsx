@@ -6,12 +6,26 @@ import { RiCloseFill } from "react-icons/ri";
 import { useMessages } from "@/context/MessagesContext";
 
 const Chat_header = () => {
-  const { chatData, chatType, setChatData, setChatType, setMessages } = useMessages();
+  const {
+    chatData,
+    chatType,
+    setChatData,
+    setChatType,
+    setMessages,
+    setIsUploading,
+    setIsDownloading,
+    setFileUploadProgress,
+    setFileDownloadProgress,
+  } = useMessages();
 
   const closeChat = () => {
-    setChatData(undefined);
-    setChatType(undefined);
     setMessages([]);
+    setChatType(undefined);
+    setChatData(undefined);
+    setIsUploading(false);
+    setIsDownloading(false);
+    setFileUploadProgress(0);
+    setFileDownloadProgress(0);
   };
 
   return (

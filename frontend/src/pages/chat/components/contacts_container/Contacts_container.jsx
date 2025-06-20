@@ -3,10 +3,11 @@ import Profile_Part from "./components/Profile_Part";
 import NewDm from "./components/NewDm";
 import ContactsList from "@/components/ContactsList";
 import { useContacts } from "@/context/ContactContext";
+import NewChannel from "./components/NewChannel";
+import { useMessages } from "@/context/MessagesContext";
 
 const Contacts_container = () => {
-
-  const { contacts } = useContacts();
+  const { contacts, groups } = useContacts();
 
   return (
     <div className="relative md:w-[35vw] xl:w-[20vw] bg-[#1b1c24] border-r-2 border-[#2f303b]">
@@ -25,6 +26,10 @@ const Contacts_container = () => {
       <div className="my-5">
         <div className="flex items-center justify-between pr-10">
           <Title text="Group Chats" />
+          <NewChannel />
+        </div>
+        <div className="max-h-[38vh] overflow-y-auto scrollbar-hidden">
+          <ContactsList contacts={groups} isGroup={true} />
         </div>
       </div>
       <Profile_Part />

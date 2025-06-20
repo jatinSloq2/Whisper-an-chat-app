@@ -7,6 +7,7 @@ import mongoose from 'mongoose';
 import authRouter from './routes/auth.routes.js';
 import contactRouter from './routes/contact.routes.js';
 import msgRouter from './routes/messages.routes.js';
+import groupRouter from './routes/group.routes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import setupSocket from './socket.js';
@@ -33,7 +34,8 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRouter);
 app.use('/api/contact', contactRouter);
-app.use('/api/messages', msgRouter)
+app.use('/api/messages', msgRouter);
+app.use('/api/group', groupRouter)
 
 mongoose.connect(MONGO_URI, {
     useNewUrlParser: true,

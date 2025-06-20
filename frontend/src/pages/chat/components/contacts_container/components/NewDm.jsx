@@ -24,7 +24,7 @@ import { useAppStore } from "@/store";
 import { useMessages } from "@/context/MessagesContext"; 
 
 const NewDm = () => {
-  const { setChatType, setChatData, setMessages } = useMessages(); // ✅
+  const { setChatType, setChatData, setMessages } = useMessages(); 
 
   const [openNewContactModal, setOpenNewContactModal] = useState(false);
   const [searchedContacts, setsearchedContacts] = useState([]);

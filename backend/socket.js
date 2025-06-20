@@ -26,25 +26,25 @@ const setupSocket = (server) => {
   };
 
   const sendMessage = async (message) => {
-  try {
-    const senderSocketId = userSocketMap.get(message.sender);
-    const recipientSocketId = userSocketMap.get(message.recipient);
-
-    const createdMessage = await Message.create(message); 
-    const messageData = await Message.findById(createdMessage._id) 
-      .populate("sender", "id email firstName lastName image color")
-      .populate("recipient", "id email firstName lastName image color");
-console.log("📨 MessageData:", messageData);
-    if (recipientSocketId) {
-      io.to(recipientSocketId).emit("receiveMessage", messageData);
+    console.log("📥 Incoming message:", message);
+    try {
+      const senderSocketId = userSocketMap.get(message.sender);
+      const recipientSocketId = userSocketMap.get(message.recipient);
+      const createdMessage = await Message.create(message);
+      const messageData = await Message.findById(createdMessage._id)
+        .populate("sender", "id email firstName lastName image color")
+        .populate("recipient", "id email firstName lastName image color");
+      console.log("📨 MessageData:", messageData);
+      if (recipientSocketId) {
+        io.to(recipientSocketId).emit("receiveMessage", messageData);
+      }
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("receiveMessage", messageData);
+      }
+    } catch (error) {
+      console.error("Error in sendMessage:", error);
     }
-    if (senderSocketId) {
-      io.to(senderSocketId).emit("receiveMessage", messageData);
-    }
-  } catch (error) {
-    console.error("Error in sendMessage:", error);
-  }
-};
+  };
 
   io.on("connection", (socket) => {
     const userId = socket.handshake.query.userId;
@@ -57,6 +57,9 @@ console.log("📨 MessageData:", messageData);
     }
     socket.on("sendMessage", sendMessage)
     socket.on("disconnect", () => disconnect(socket));
+    socket.onAny((event, ...args) => {
+      console.log(`📩 Received socket event '${event}' with data:`, args);
+    });
   });
 };
 
