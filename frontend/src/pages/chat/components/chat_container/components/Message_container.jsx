@@ -1,3 +1,4 @@
+import { useMessages } from "@/context/MessagesContext";
 import { apiClient } from "@/lib/api-client";
 import { useAppStore } from "@/store";
 import { GET_MSG } from "@/utils/constant";
@@ -6,50 +7,36 @@ import React, { useEffect, useRef } from "react";
 
 const Message_container = () => {
   const scrollRef = useRef();
-  const {
-    selectedChatType,
-    selectedChatData,
-    userInfo,
-    selectedChatMessages,
-    setSelectedChatMessages,
-  } = useAppStore();
+
+  const { chatType, chatData, messages, fetchMessages } = useMessages();
+  const { userInfo } = useAppStore(); // optional - can move to auth context later
 
   useEffect(() => {
-    const getMessages = async () => {
-      try {
-        const res = await apiClient.post(GET_MSG, { id: selectedChatData._id });
-        if (res.data.messages) {
-          setSelectedChatMessages(res.data.messages);
-        }
-      } catch (error) {
-        console.log(error);
-      }
-    };
-
-    if (selectedChatData._id && selectedChatType === "contact") {
-      getMessages();
+    if (chatData?._id && chatType === "contact") {
+      fetchMessages(chatData._id, chatType);
     }
-  }, [selectedChatData, selectedChatType, setSelectedChatMessages]);
+  }, [chatData?._id, chatType]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [selectedChatMessages]);
+  }, [messages]);
+
   const renderMessages = () => {
     let lastDate = null;
-    return selectedChatMessages.map((messages, index) => {
-      const messageDate = moment(messages.timestamp).format("YYYY-MM-DD");
+    return messages.map((message, index) => {
+      const messageDate = moment(message.timestamp).format("YYYY-MM-DD");
       const showDate = messageDate !== lastDate;
       lastDate = messageDate;
       return (
         <div key={index}>
           {showDate && (
             <div className="text-center text-gray-500 my-2">
-              {moment(messages.timestamp).format("LL")}
+              {moment(message.timestamp).format("LL")}
             </div>
           )}
-          {selectedChatType === "contact" && renderDmMessages(messages)}
+          {chatType === "contact" && renderDmMessages(message)}
         </div>
       );
     });
@@ -77,7 +64,7 @@ const Message_container = () => {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto scrolbar-hidden p-4 px-8 md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full ">
+    <div className="flex-1 overflow-y-auto scrolbar-hidden p-4 px-8 md:w-[65vw] lg:w-[70vw] xl:w-[80vw] w-full">
       {renderMessages()}
       <div ref={scrollRef}></div>
     </div>

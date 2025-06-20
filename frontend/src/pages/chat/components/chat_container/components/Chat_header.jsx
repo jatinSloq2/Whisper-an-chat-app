@@ -1,41 +1,48 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { getColor } from "@/lib/utils";
-import { useAppStore } from "@/store";
 import { HOST } from "@/utils/constant";
 import React from "react";
 import { RiCloseFill } from "react-icons/ri";
+import { useMessages } from "@/context/MessagesContext";
+
 const Chat_header = () => {
-  const { closeChat, selectedChatData, selectedChatType } = useAppStore();
+  const { chatData, chatType, setChatData, setChatType, setMessages } = useMessages();
+
+  const closeChat = () => {
+    setChatData(undefined);
+    setChatType(undefined);
+    setMessages([]);
+  };
 
   return (
-    <div className="h-[10vh]  border-b-2 border-[#2f303b] flex items-center justify-between px-20">
+    <div className="h-[10vh] border-b-2 border-[#2f303b] flex items-center justify-between px-20">
       <div className="flex gap-5 items-center w-full justify-between">
         <div className="flex gap-3 items-center justify-center">
           <div className="w-12 h-12 relative">
             <Avatar className="h-10 w-10 rounded-full overflow-hidden border-1 border-white">
-              {selectedChatData.image ? (
+              {chatData?.image ? (
                 <AvatarImage
-                  src={`${HOST}/${selectedChatData.image}`}
+                  src={`${HOST}/${chatData.image}`}
                   alt="profile-photo"
                   className="object-cover h-full w-full bg-black"
                 />
               ) : (
                 <div
                   className={`uppercase h-full w-full text-lg flex items-center justify-center ${getColor(
-                    selectedChatData.color
+                    chatData?.color
                   )} rounded-full`}
                 >
-                  {selectedChatData.firstName
-                    ? selectedChatData.firstName?.charAt(0)
-                    : selectedChatData?.email?.charAt(0)}
+                  {chatData?.firstName
+                    ? chatData.firstName.charAt(0)
+                    : chatData?.email?.charAt(0)}
                 </div>
               )}
             </Avatar>
           </div>
           <div>
-            {selectedChatType === "contact" && selectedChatData.firstName
-              ? `${selectedChatData.firstName}  ${selectedChatData.lastName} `
-              : selectedChatData.email}
+            {chatType === "contact" && chatData?.firstName
+              ? `${chatData.firstName}  ${chatData.lastName}`
+              : chatData?.email}
           </div>
         </div>
         <div className="flex items-center justify-center gap-5">
