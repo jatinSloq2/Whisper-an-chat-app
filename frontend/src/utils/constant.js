@@ -11,3 +11,7 @@ export const REMOVE_PROFILEIMAGE = `${AUTH_ROUTES}/remove-profile-image`
 
 export const CONTACT_ROUTES = "api/contact"
 export const SEARCH_CONTACTS = `${CONTACT_ROUTES}/search`
+export const GET_CONTACTS_DMS = `${CONTACT_ROUTES}/get-contacts-for-dm-list`
+
+export const MSG_ROUTES = "api/messages"
+export const GET_MSG = `${MSG_ROUTES}/get-messages`
