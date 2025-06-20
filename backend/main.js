@@ -6,8 +6,10 @@ import mongoose from 'mongoose';
 
 import authRouter from './routes/auth.routes.js';
 import contactRouter from './routes/contact.routes.js';
+import msgRouter from './routes/messages.routes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import setupSocket from './socket.js';
 
 dotenv.config()
 
@@ -19,7 +21,6 @@ const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 
-// Middleware
 app.use(cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
@@ -30,11 +31,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
 app.use('/api/auth', authRouter);
 app.use('/api/contact', contactRouter);
+app.use('/api/messages', msgRouter)
 
-// Connect to MongoDB
 mongoose.connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -45,7 +45,11 @@ mongoose.connect(MONGO_URI, {
     .catch((err) => {
         console.error('MongoDB connection error:', err);
     });
+
+
 // Start the server
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`The server is live on http://localhost:${PORT}`);
 });
+
+setupSocket(server)

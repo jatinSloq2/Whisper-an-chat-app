@@ -1,8 +1,24 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Profile_Part from "./components/Profile_Part";
 import NewDm from "./components/NewDm";
+import { apiClient } from "@/lib/api-client";
+import { GET_CONTACTS_DMS } from "@/utils/constant";
+import { useAppStore } from "@/store";
+import ContactsList from "@/components/ContactsList";
 
 const Contacts_container = () => {
+  const { directMessagesContact, setDirectMessagesContact } = useAppStore();
+
+  // useEffect(()=>{
+  //   const getContacts = async () => {
+  //     const res = await apiClient.get(GET_CONTACTS_DMS)
+  //     if(res.data.contacts){
+  //       setDirectMessagesContact(res.data.contacts)
+  //     }
+  //   }
+  //   getContacts()
+  // },[])
+
   return (
     <div className="relative md:w-[35vw] xl:w-[20vw] bg-[#1b1c24] border-r-2 border-[#2f303b]">
       <div className="pt-3">
@@ -11,7 +27,10 @@ const Contacts_container = () => {
       <div className="my-5">
         <div className="flex items-center justify-between pr-10">
           <Title text="Direct Messages" />
-          <NewDm/>
+          <NewDm />
+        </div>
+        <div className="max-h-[38vh] overflow-y-auto scrollbar-hidden">
+          <ContactsList contacts={directMessagesContact} />
         </div>
       </div>
       <div className="my-5">
@@ -19,7 +38,7 @@ const Contacts_container = () => {
           <Title text="Group Chats" />
         </div>
       </div>
-      <Profile_Part/>
+      <Profile_Part />
     </div>
   );
 };
