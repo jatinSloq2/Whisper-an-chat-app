@@ -12,6 +12,12 @@ export const REMOVE_PROFILEIMAGE = `${AUTH_ROUTES}/remove-profile-image`
 export const CONTACT_ROUTES = "api/contact"
 export const SEARCH_CONTACTS = `${CONTACT_ROUTES}/search`
 export const GET_CONTACTS_DMS = `${CONTACT_ROUTES}/get-contacts-for-dm-list`
+export const GET_ALL_CONTACTS = `${CONTACT_ROUTES}/get-all-contacts`
 
 export const MSG_ROUTES = "api/messages"
 export const GET_MSG = `${MSG_ROUTES}/get-messages`
+export const UPLOAD_FILE = `${MSG_ROUTES}/upload-file`
+
+export const GROUP_ROUTES = "api/group"
+export const CREATE_NEW_GROUP = `${GROUP_ROUTES}/create-group`
+export const GET_USER_GROUPS = `${GROUP_ROUTES}/get-user-groups`

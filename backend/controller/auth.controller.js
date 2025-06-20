@@ -141,7 +141,7 @@ export const addProfileImage = async (req, res) => {
             return res.status(400).json({ message: "No file uploaded" });
         }
         const date = new Date();
-        const fileName = "uploads/profiles/" + date.getTime() + "-" + req.file.originalname;
+        const fileName = "uploads/files/" + date.getTime() + "-" + req.file.originalname;
         renameSync(req.file.path, fileName);
         const updatedUser = await User.findByIdAndUpdate(req.userId, {
             image: fileName
