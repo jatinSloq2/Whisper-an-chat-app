@@ -41,17 +41,20 @@ export const ContactsProvider = ({ children }) => {
   };
 
   const upsertContactToTop = (contact) => {
-    setContacts((prevContacts) => {
-      const index = prevContacts.findIndex((c) => c._id === contact._id);
-      if (index > -1) {
-        const updated = [...prevContacts];
-        const [existing] = updated.splice(index, 1);
-        return [existing, ...updated];
-      } else {
-        return [contact, ...prevContacts];
-      }
-    });
-  };
+     console.log("💡 Upserting contact:", contact);
+  setContacts((prevContacts) => {
+    const index = prevContacts.findIndex((c) => c._id === contact._id);
+
+    if (index > -1) {
+      const updated = [...prevContacts];
+      const mergedContact = { ...updated[index], ...contact };
+      updated.splice(index, 1);
+      return [mergedContact, ...updated]; 
+    } else {
+      return [contact, ...prevContacts];
+    }
+  });
+};
 
   const upsertGroupToTop = (group) => {
     setGroups((prevGroups) => {

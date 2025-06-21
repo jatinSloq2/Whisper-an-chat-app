@@ -1,5 +1,5 @@
 import { useSocket } from "@/context/socketContext";
-import { useAppStore } from "@/store"; // Only for userInfo
+import { useAppStore } from "@/store";
 import { useMessages } from "@/context/MessagesContext";
 import EmojiPicker from "emoji-picker-react";
 import React, { useEffect, useRef, useState } from "react";

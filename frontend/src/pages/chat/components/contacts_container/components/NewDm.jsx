@@ -6,10 +6,8 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import React, { useState } from "react";
 import { FaPlus } from "react-icons/fa";
@@ -24,7 +22,6 @@ import { useMessages } from "@/context/MessagesContext";
 
 const NewDm = () => {
   const { setChatType, setChatData, setMessages } = useMessages();
-
   const [openNewContactModal, setOpenNewContactModal] = useState(false);
   const [searchedContacts, setsearchedContacts] = useState([]);
 
@@ -45,20 +42,32 @@ const NewDm = () => {
   };
 
   const selectContact = (contact) => {
-    const contactData = contact.isRegistered
-      ? {
-          ...contact.linkedUser,
-          contactName: contact.contactName,
-          contactId: contact._id,
-          isRegistered: true,
-        }
-      : {
-          contactName: contact.contactName,
-          email: contact.contactEmail || null,
-          phoneNo: contact.contactPhoneNo || null,
-          contactId: contact._id,
-          isRegistered: false,
-        };
+    let contactData;
+
+    if (contact.isRegistered) {
+      const linked = contact.linkedUser;
+
+      contactData = {
+        _id: linked._id,
+        contactName:
+          contact.contactName || `${linked.firstName} ${linked.lastName}`,
+        firstName: linked.firstName,
+        lastName: linked.lastName,
+        email: linked.email,
+        phoneNo: linked.phoneNo,
+        image: linked.image,
+        color: linked.color,
+        isRegistered: true,
+      };
+    } else {
+      contactData = {
+        _id: contact._id,
+        contactName: contact.contactName,
+        email: contact.contactEmail || null,
+        phoneNo: contact.contactPhoneNo || null,
+        isRegistered: false,
+      };
+    }
 
     setChatType("contact");
     setChatData(contactData);
