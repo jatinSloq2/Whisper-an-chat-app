@@ -14,17 +14,53 @@ export const ContactsProvider = ({ children }) => {
   };
 
   const fetchContacts = async () => {
-    const res = await apiClient.get(GET_CONTACTS_DMS);
-    if (res.data.contacts) {
-      setContacts(res.data.contacts);
+    try {
+      const res = await apiClient.get(GET_CONTACTS_DMS);
+      if (res.data.contacts) {
+        setContacts(res.data.contacts);
+      }
+    } catch (err) {
+      console.error("❌ Failed to fetch contacts:", err);
+      setContacts([]);
     }
   };
 
   const fetchGroups = async () => {
-    const res = await apiClient.get(GET_USER_GROUPS);
-    if (res.data.groups) {
-      setGroups(res.data.groups);
+    try {
+      const res = await apiClient.get(GET_USER_GROUPS);
+      if (res.data.groups) {
+        setGroups(res.data.groups);
+      }
+    } catch (err) {
+      console.error("❌ Failed to fetch groups:", err);
+      setGroups([]);
     }
+  };
+
+  const upsertContactToTop = (contact) => {
+    setContacts((prevContacts) => {
+      const index = prevContacts.findIndex((c) => c._id === contact._id);
+      if (index > -1) {
+        const updated = [...prevContacts];
+        const [existing] = updated.splice(index, 1);
+        return [existing, ...updated];
+      } else {
+        return [contact, ...prevContacts];
+      }
+    });
+  };
+
+  const upsertGroupToTop = (group) => {
+    setGroups((prevGroups) => {
+      const index = prevGroups.findIndex((c) => c._id === group._id);
+      if (index > -1) {
+        const updated = [...prevGroups];
+        const [existing] = updated.splice(index, 1);
+        return [existing, ...updated];
+      } else {
+        return [group, ...prevGroups];
+      }
+    });
   };
 
   useEffect(() => {
@@ -34,7 +70,15 @@ export const ContactsProvider = ({ children }) => {
 
   return (
     <ContactsContext.Provider
-      value={{ contacts, groups, addGroup, fetchGroups }}
+      value={{
+        contacts,
+        groups,
+        setGroups,
+        upsertGroupToTop,
+        upsertContactToTop,
+        addGroup,
+        fetchGroups,
+      }}
     >
       {children}
     </ContactsContext.Provider>

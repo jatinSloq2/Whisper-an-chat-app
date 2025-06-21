@@ -4,7 +4,7 @@ import User from "../models/userModel.js";
 
 
 
-export const createGroup = async (request, response, next) => {
+export const createGroup = async (request, response) => {
   try {
     const { name, members } = request.body;
     const userId = request.userId;
@@ -33,7 +33,7 @@ export const createGroup = async (request, response, next) => {
   }
 };
 
-export const getUserGroups = async (request, response, next) => {
+export const getUserGroups = async (request, response) => {
   try {
     const userId = new mongoose.Types.ObjectId(request.userId);
 
@@ -48,3 +48,29 @@ export const getUserGroups = async (request, response, next) => {
   }
 };
 
+export const getAllGroupMessages = async (req, res) => {
+  try {
+    const { groupId } = req.query;
+    console.log("📥 groupId from query:", groupId);
+
+    const group = await Group.findById(groupId).populate({
+      path: "messages",
+      populate: {
+        path: "sender",
+        select: "firstName lastName image email _id color"
+      }
+    });
+
+    if (!group) {
+      console.log("❌ Group not found");
+      return res.status(404).send("Group not found");
+    }
+
+    const messages = group.messages;
+    console.log("✅ Group found. Messages:", messages.length);
+    return res.status(200).json({ messages });
+  } catch (error) {
+    console.log("🔥 Error in getAllGroupMessages:", error);
+    return res.status(500).send("Internal Server Error");
+  }
+};

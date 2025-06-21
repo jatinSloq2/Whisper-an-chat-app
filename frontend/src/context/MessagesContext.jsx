@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 import { apiClient } from "@/lib/api-client";
-import { GET_MSG } from "@/utils/constant";
+import { GET_ALL_MSG_GROUP, GET_MSG } from "@/utils/constant";
 
 const MessagesContext = createContext();
 
@@ -12,11 +12,11 @@ export const MessagesProvider = ({ children }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [fileDownloadProgress, setFileDownloadProgress] = useState(0);
+
   
-  // Fetch all messages for a specific chat
+
   const fetchMessages = async (chatId, type) => {
     if (!chatId || type !== "contact") return;
-
     try {
       const res = await apiClient.post(GET_MSG, { id: chatId });
       if (res.data.messages) {
@@ -28,15 +28,29 @@ export const MessagesProvider = ({ children }) => {
     }
   };
 
-  // Add a new message (used by socket or local send)
+  const fetchGroupMessages = async (grouId, type) => {
+    if (!grouId || type !== "group") return;
+    try {
+      const res = await apiClient.get(`${GET_ALL_MSG_GROUP}`, {
+        params: { groupId: grouId },
+      });
+      if (res.data.messages) {
+        setMessages(res.data.messages);
+      }
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+      setMessages([]);
+    }
+  };
+
   const addMessage = (message) => {
     setMessages((prevMessages) => [
       ...prevMessages,
       {
         ...message,
         recipient:
-          chatType === "channel" ? message.recipient : message.recipient._id,
-        sender: chatType === "channel" ? message.sender : message.sender._id,
+          chatType === "group" ? message.recipient : message.recipient._id,
+        sender: chatType === "group" ? message.sender : message.sender._id,
       },
     ]);
   };
@@ -47,6 +61,7 @@ export const MessagesProvider = ({ children }) => {
         messages,
         setMessages,
         fetchMessages,
+        fetchGroupMessages,
         addMessage,
         chatType,
         setChatType,
@@ -59,7 +74,7 @@ export const MessagesProvider = ({ children }) => {
         fileUploadProgress,
         setFileUploadProgress,
         fileDownloadProgress,
-        setFileDownloadProgress, 
+        setFileDownloadProgress,
       }}
     >
       {children}
