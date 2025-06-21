@@ -20,10 +20,10 @@ import { apiClient } from "@/lib/api-client";
 import { HOST, SEARCH_CONTACTS } from "@/utils/constant";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { useMessages } from "@/context/MessagesContext"; 
+import { useMessages } from "@/context/MessagesContext";
 
 const NewDm = () => {
-  const { setChatType, setChatData, setMessages } = useMessages(); 
+  const { setChatType, setChatData, setMessages } = useMessages();
 
   const [openNewContactModal, setOpenNewContactModal] = useState(false);
   const [searchedContacts, setsearchedContacts] = useState([]);
@@ -32,6 +32,7 @@ const NewDm = () => {
     try {
       if (searchTerm.length > 0) {
         const res = await apiClient.post(SEARCH_CONTACTS, { searchTerm });
+        console.log(res);
         if (res.status === 200 && res.data.contacts) {
           setsearchedContacts(res.data.contacts);
         }
@@ -44,11 +45,26 @@ const NewDm = () => {
   };
 
   const selectContact = (contact) => {
-    setOpenNewContactModal(false);
+    const contactData = contact.isRegistered
+      ? {
+          ...contact.linkedUser,
+          customName: contact.contactName,
+          contactId: contact._id,
+          isRegistered: true,
+        }
+      : {
+          customName: contact.contactName,
+          email: contact.contactEmail || null,
+          phoneNo: contact.contactPhoneNo || null,
+          contactId: contact._id,
+          isRegistered: false,
+        };
+
     setChatType("contact");
-    setChatData(contact);
+    setChatData(contactData);
     setMessages([]);
     setsearchedContacts([]);
+    setOpenNewContactModal(false);
   };
   return (
     <>
@@ -74,7 +90,7 @@ const NewDm = () => {
           </DialogHeader>
           <div>
             <Input
-              placeholder="Sekect a contact"
+              placeholder="Select a contact"
               className="rounded-lg p-6 bg-[#2c2e3b] border-none"
               onChange={(e) => searchContact(e.target.value)}
             />
@@ -82,44 +98,72 @@ const NewDm = () => {
           {searchedContacts.length > 0 && (
             <ScrollArea className="h-[250px]">
               <div className="flex flex-col gap-5">
-                {searchedContacts.map((contact) => (
-                  <div
-                    className="flex gap-3 cursor-pointer items-center"
-                    key={contact._id}
-                    onClick={() => selectContact(contact)}
-                  >
-                    <div className="w-12 h-12 relative">
-                      <Avatar className="h-10 w-10 rounded-full overflow-hidden border-1 border-white">
-                        {contact.image ? (
-                          <AvatarImage
-                            src={`${HOST}/${contact.image}`}
-                            alt="profile-photo"
-                            className="object-cover h-full w-full bg-black"
-                          />
-                        ) : (
-                          <div
-                            className={`uppercase h-full w-full text-lg flex items-center justify-center ${getColor(
-                              contact.color
-                            )} rounded-full`}
-                          >
-                            {contact.firstName
-                              ? contact.firstName?.charAt(0)
-                              : contact?.email?.charAt(0)}
-                          </div>
+                {searchedContacts.map((contact) => {
+                  const isRegistered = contact.isRegistered;
+                  const linked = contact.linkedUser;
+                  const hasEmail = contact.contactEmail;
+                  const hasPhone = contact.contactPhoneNo;
+
+                  const handleClick = () => {
+                    if (isRegistered) {
+                      selectContact(contact);
+                    } else if (hasEmail) {
+                      window.location.href = `mailto:${hasEmail}?subject=Join%20Syncronus&body=Hey%20${contact.contactName},%0A%0AI'd%20like%20to%20chat%20with%20you%20on%20Syncronus.%20Join%20me%20on%20the%20platform!`;
+                    } else if (hasPhone) {
+                      alert(
+                        `This contact has only a phone number.\nYou can invite them manually:\nPhone: ${hasPhone}`
+                      );
+                    } else {
+                      alert("This contact doesn't have enough info to invite.");
+                    }
+                  };
+
+                  return (
+                    <div
+                      className="flex gap-3 cursor-pointer items-center"
+                      key={contact._id}
+                      onClick={handleClick}
+                    >
+                      <div className="w-12 h-12 relative">
+                        <Avatar className="h-10 w-10 rounded-full overflow-hidden border-1 border-white">
+                          {isRegistered && linked?.image ? (
+                            <AvatarImage
+                              src={`${HOST}/${linked.image}`}
+                              alt="profile-photo"
+                              className="object-cover h-full w-full bg-black"
+                            />
+                          ) : (
+                            <div
+                              className={`uppercase h-full w-full text-lg flex items-center justify-center ${getColor(
+                                linked?.color || 1
+                              )} rounded-full`}
+                            >
+                              {contact.contactName?.charAt(0) ||
+                                contact.contactEmail?.charAt(0) ||
+                                contact.contactPhoneNo?.charAt(0)}
+                            </div>
+                          )}
+                        </Avatar>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="font-medium text-white">
+                          {contact.contactName || "Unnamed Contact"}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {isRegistered
+                            ? linked?.email || linked?.phoneNo
+                            : contact.contactEmail || contact.contactPhoneNo}
+                        </span>
+                        {!isRegistered && (
+                          <span className="text-xs text-yellow-400 italic">
+                            Invite to join
+                          </span>
                         )}
-                      </Avatar>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span>
-                        {" "}
-                        {contact.firstName && contact.lastName
-                          ? `${contact.firstName} ${contact.lastName}`
-                          : contact.email}
-                      </span>
-                      <span className="text-xs">{contact.email}</span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>{" "}
             </ScrollArea>
           )}
