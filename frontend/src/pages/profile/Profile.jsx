@@ -27,11 +27,14 @@ const Profile = () => {
   const [selectedColor, setSelectedColor] = useState(0);
   const fileInputRef = useRef(null);
 
+  console.log("userInfo", userInfo)
+
   useEffect(() => {
     if (userInfo?.profileSetup) {
       setFirstName(userInfo.firstName || "");
       setLastName(userInfo.lastName || "");
       setSelectedColor(userInfo.color ?? 0);
+
     }
     if (userInfo.image) {
       const parts = userInfo.image.split("/");
@@ -107,7 +110,6 @@ const Profile = () => {
         const encodedFileName = encodeURIComponent(parts.pop());
         const cleanPath = parts.join("/");
         setImage(`${HOST}/${cleanPath}/${encodedFileName}`);
-        console.log(`${HOST}/${cleanPath}/${encodedFileName}`);
         toast.success("Image uploaded successfully");
         console.log("image", image);
       }
@@ -207,6 +209,12 @@ const Profile = () => {
           <Input
             placeholder="Email"
             value={userInfo.email}
+            disabled
+            className="rounded-lg p-5 bg-[#2c2e3b] border-none"
+          />
+          <Input
+            placeholder="Phone No"
+            value={userInfo.phoneNo}
             disabled
             className="rounded-lg p-5 bg-[#2c2e3b] border-none"
           />
