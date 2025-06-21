@@ -19,17 +19,22 @@ const ContactsList = ({ contacts, isGroup = false }) => {
       setMessages([]);
     }
   };
-
   return (
     <div className="mt-5">
       {contacts.map((contact, index) => {
+        console.log("chatData", chatData);
         const isActive = chatData && chatData._id === contact._id;
-
+        console.log(contact);
         const displayName =
-          contact.contactName || contact.phoneNo || contact.email || "Unknown";
+          contact.contactName ||
+          chatData.contactName ||
+          contact.phoneNo ||
+          contact.email ||
+          "Unknown";
 
         const avatarLetter = (contact.contactName ||
-          contact.email ||
+          chatData.contactName ||
+          chatData?.email ||
           "U")[0].toUpperCase();
         return (
           <div
@@ -42,9 +47,9 @@ const ContactsList = ({ contacts, isGroup = false }) => {
             <div className="flex gap-5 items-center justify-start text-neutral-300 py-3">
               {!isGroup ? (
                 <Avatar className="h-10 w-10 rounded-full overflow-hidden border border-white">
-                  {contact.image ? (
+                  {contact.image || chatData?.image ? (
                     <AvatarImage
-                      src={`${HOST}/${contact.image}`}
+                      src={`${HOST}/${contact.image || chatData.image}`}
                       alt="profile-photo"
                       className="object-cover h-full w-full bg-black"
                     />
