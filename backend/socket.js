@@ -48,47 +48,55 @@ const setupSocket = (server) => {
   };
 
   const sendGroupMessage = async (message) => {
-    const { groupId, sender, content, messageType, fileUrl } = message;
+  const { groupId, sender, content, messageType, fileUrl } = message;
 
-    const createdMessage = await Message.create({
-      sender,
-      recipient: null,
-      content,
-      messageType,
-      timestamp: new Date(),
-      fileUrl,
-    });
+  const createdMessage = await Message.create({
+    sender,
+    recipient: null,
+    content,
+    messageType,
+    timestamp: new Date(),
+    fileUrl,
+  });
 
-    const messageData = await Message.findById(createdMessage._id)
-      .populate("sender", "id email firstName lastName image color")
-      .exec();
+  const messageData = await Message.findById(createdMessage._id)
+    .populate("sender", "id email firstName lastName image color")
+    .exec();
 
-    await Group.findByIdAndUpdate(groupId, {
-      $push: { messages: createdMessage._id },
-    });
+  await Group.findByIdAndUpdate(groupId, {
+    $push: { messages: createdMessage._id },
+  });
 
-    const group = await Group.findById(groupId).populate("members");
-    const finalData = { ...messageData._doc, groupId: group._id }
-    console.log(`📤 Sent group message to group ${groupId}`, finalData);
-    const sentTo = new Set();
-    if (group && group.members) {
-      group.members.forEach((member) => {
-        const memberSocketId = userSocketMap.get(member._id.toString());
-        if (memberSocketId && !sentTo.has(memberSocketId)) {
-          io.to(memberSocketId).emit("receive-group-message", finalData);
-          sentTo.add(memberSocketId);
-        }
-      });
+  const group = await Group.findById(groupId)
+    .populate("members", "_id")
+    .populate("admins", "_id");
 
-      if (group.admin?._id) {
-        const adminSocketId = userSocketMap.get(group.admin._id.toString());
-        if (adminSocketId && !sentTo.has(adminSocketId)) {
-          io.to(adminSocketId).emit("receive-group-message", finalData);
-        }
+  const finalData = { ...messageData._doc, groupId: group._id };
+  console.log(`📤 Sent group message to group ${groupId}`, finalData);
+
+  const sentTo = new Set();
+
+  if (group && group.members) {
+    group.members.forEach((member) => {
+      const memberSocketId = userSocketMap.get(member._id.toString());
+      if (memberSocketId && !sentTo.has(memberSocketId)) {
+        io.to(memberSocketId).emit("receive-group-message", finalData);
+        sentTo.add(memberSocketId);
       }
-    }
+    });
+  }
 
-  };
+  if (Array.isArray(group.admins)) {
+    group.admins.forEach((admin) => {
+      const adminSocketId = userSocketMap.get(admin._id.toString());
+      if (adminSocketId && !sentTo.has(adminSocketId)) {
+        io.to(adminSocketId).emit("receive-group-message", finalData);
+        sentTo.add(adminSocketId);
+      }
+    });
+  }
+};
+
 
   io.on("connection", (socket) => {
     const userId = socket.handshake.query.userId;

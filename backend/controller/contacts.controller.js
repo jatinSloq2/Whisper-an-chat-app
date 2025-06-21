@@ -71,8 +71,6 @@ export const getContactsDmList = async (req, res) => {
         },
       },
       { $unwind: "$contactInfo" },
-
-      // Lookup contact to get custom name
       {
         $lookup: {
           from: "contacts",
@@ -135,22 +133,33 @@ export const getContactsDmList = async (req, res) => {
 };
 
 export const getAllContacts = async (req, res) => {
-    try {
-        const users = await User.find(
-            { _id: { $ne: req.userId } },
-            "firstName lastName _id email phoneNO"
-        );
+  try {
+    const userId = req.userId;
+    const userContacts = await Contact.find({ owner: userId });
+    const contactUserIds = userContacts
+      .filter((c) => c.linkedUser)
+      .map((c) => c.linkedUser);
 
-        const contacts = users.map((user) => ({
-            label: user.firstName ? `${user.firstName} ${user.lastName}` : user.email,
-            value: user._id
-        }));
+    const linkedUsers = await User.find(
+      { _id: { $in: contactUserIds } },
+      "firstName lastName _id email phoneNo"
+    );
+    const contacts = userContacts.map((contact) => {
+      const linked = linkedUsers.find(
+        (user) => user._id.toString() === contact.linkedUser?.toString()
+      );
 
-        return res.status(200).json({ contacts });
-    } catch (error) {
-        console.log({ error });
-        return res.status(500).send("Internal Server Error");
-    }
+      return {
+        label: contact.contactName || `${linked?.firstName ?? ""} ${linked?.lastName ?? ""}`.trim() || linked?.email || linked?.phoneNo || "Unnamed",
+        value: linked?._id || contact._id,
+      };
+    });
+
+    return res.status(200).json({ contacts });
+  } catch (error) {
+    console.error("Error in getAllContacts:", error);
+    return res.status(500).send("Internal Server Error");
+  }
 };
 
 export const addContact = async (req, res) => {
@@ -191,9 +200,9 @@ export const addContact = async (req, res) => {
     // Check if this contact already exists in your list
     const existingContact = contactMatchQuery.length
       ? await Contact.findOne({
-          owner: userId,
-          $or: contactMatchQuery,
-        })
+        owner: userId,
+        $or: contactMatchQuery,
+      })
       : null;
 
     if (existingContact) {

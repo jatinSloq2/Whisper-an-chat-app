@@ -12,8 +12,7 @@ export const MessagesProvider = ({ children }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [fileDownloadProgress, setFileDownloadProgress] = useState(0);
-
-  
+  const [showProfile, setShowProfile] = useState(false);
 
   const fetchMessages = async (chatId, type) => {
     if (!chatId || type !== "contact") return;
@@ -75,6 +74,8 @@ export const MessagesProvider = ({ children }) => {
         setFileUploadProgress,
         fileDownloadProgress,
         setFileDownloadProgress,
+        showProfile,
+        setShowProfile,
       }}
     >
       {children}

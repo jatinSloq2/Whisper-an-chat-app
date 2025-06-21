@@ -22,7 +22,7 @@ export const createGroup = async (request, response) => {
     const newGroup = new Group({
       name,
       members,
-      admin: userId,
+      admins: [userId],
     });
 
     await newGroup.save();
@@ -38,9 +38,9 @@ export const getUserGroups = async (request, response) => {
     const userId = new mongoose.Types.ObjectId(request.userId);
 
     const groups = await Group.find({
-      $or: [{ admin: userId }, { members: userId }],
-    }).sort({ updatedAt: -1 });
-
+      $or: [{ admins: userId }, { members: userId }],
+    }).populate("members", "firstName lastName email image color").populate("admins", "firstName lastName email").sort({ updatedAt: -1 });
+    console.log(groups)
     return response.status(201).json({ groups });
   } catch (error) {
     console.log({ error });
@@ -51,7 +51,6 @@ export const getUserGroups = async (request, response) => {
 export const getAllGroupMessages = async (req, res) => {
   try {
     const { groupId } = req.query;
-    console.log("📥 groupId from query:", groupId);
 
     const group = await Group.findById(groupId).populate({
       path: "messages",
@@ -62,12 +61,10 @@ export const getAllGroupMessages = async (req, res) => {
     });
 
     if (!group) {
-      console.log("❌ Group not found");
       return res.status(404).send("Group not found");
     }
 
     const messages = group.messages;
-    console.log("✅ Group found. Messages:", messages.length);
     return res.status(200).json({ messages });
   } catch (error) {
     console.log("🔥 Error in getAllGroupMessages:", error);
