@@ -21,6 +21,7 @@ export const searchContacts = async (req, res) => {
                         { firstName: regex },
                         { lastName: regex },
                         { email: regex },
+                        { phoneNo: regex },
                     ],
                 },
             ],
@@ -73,6 +74,7 @@ export const getContactsDmList = async (req, res) => {
                     _id: 1,
                     lastMessage: 1,
                     email: "$contactInfo.email",
+                    phoneNo: "$contactInfo.phoneNo",
                     firstName: "$contactInfo.firstName",
                     lastName: "$contactInfo.lastName",
                     image: "$contactInfo.image",
@@ -96,7 +98,7 @@ export const getAllContacts = async (req, res) => {
     try {
         const users = await User.find(
             { _id: { $ne: req.userId } },
-            "firstName lastName _id email"
+            "firstName lastName _id email phoneNO"
         );
 
         const contacts = users.map((user) => ({

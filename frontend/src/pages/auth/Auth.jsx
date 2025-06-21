@@ -13,20 +13,30 @@ import { useAppStore } from "@/store";
 const Auth = () => {
   const navigate = useNavigate();
   const { setUserInfo } = useAppStore();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+
+  // for login
+  const [identifier, setIdentifier] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  // for signup
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPhone, setSignupPhone] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const validateSignup = () => {
-    if (!email.length) {
+    if (signupPhone.length !== 10 || !/^\d{10}$/.test(signupPhone)) {
+      toast.error("Please enter a valid 10-digit phone number");
+      return false;
+    }
+    if (!signupEmail.length) {
       toast.error("Email is required");
       return false;
     }
-    if (!password.length) {
+    if (!signupPassword.length) {
       toast.error("Password is required");
       return false;
     }
-    if (password !== confirmPassword) {
+    if (signupPassword !== confirmPassword) {
       toast.error("Passwords do not match");
       return false;
     }
@@ -34,11 +44,11 @@ const Auth = () => {
   };
 
   const validateLogin = () => {
-    if (!email.length) {
+    if (!identifier.length) {
       toast.error("Email is required");
       return false;
     }
-    if (!password.length) {
+    if (!loginPassword.length) {
       toast.error("Password is required");
       return false;
     }
@@ -47,36 +57,64 @@ const Auth = () => {
 
   const handleLogin = async () => {
     if (!validateLogin()) return;
-    const res = await apiClient.post(LOGIN_ROUTES, {
-      email,
-      password,
-    });
-    if (res.data.user.id) {
-      setUserInfo(res.data.user);
-      if (res.data.user.profileSetup) {
-        toast.success("Login successful!");
-        navigate("/chat");
+
+    try {
+      const res = await apiClient.post(LOGIN_ROUTES, {
+        identifier: identifier,
+        password: loginPassword,
+      });
+
+      if (res.data.user?.id) {
+        setUserInfo(res.data.user);
+
+        if (res.data.user.profileSetup) {
+          toast.success("Login successful!");
+          navigate("/chat");
+        } else {
+          toast.success(
+            "Login successful! Please complete your profile setup."
+          );
+          navigate("/profile");
+        }
       } else {
-        toast.success("Login successful! Please complete your profile setup.");
-        navigate("/profile");
+        toast.error("Login failed. Please try again.");
       }
+    } catch (error) {
+      console.error("Login error:", error);
+      const message =
+        error.response?.data?.message || "Login failed. Please try again.";
+      toast.error(message);
     }
   };
 
   const handleSignup = async () => {
     if (!validateSignup()) return;
-    const res = await apiClient.post(SIGNUP_ROUTES, {
-      email,
-      password,
-    });
-    if (res.status === 201) {
-      setUserInfo(res.data.user);
-      toast.success("Signup successful!");
-      navigate("/profile");
-    } else {
-      toast.error("Signup failed. Please try again.");
+
+    try {
+      const res = await apiClient.post(SIGNUP_ROUTES, {
+        email: signupEmail,
+        phoneNo: signupPhone,
+        password: signupPassword,
+      });
+
+      if (res.status === 201) {
+        setUserInfo(res.data.user);
+        console.log(res.data.user);
+        toast.success("Signup successful!");
+        navigate("/profile");
+      } else {
+        toast.error("Signup failed. Please try again.");
+      }
+
+      console.log(res);
+    } catch (error) {
+      console.error("Signup error:", error);
+      if (error.response && error.response.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     }
-    console.log(res);
   };
 
   return (
@@ -116,15 +154,15 @@ const Auth = () => {
             <TabsContent value="login" className="flex flex-col gap-4">
               <Input
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 type="email"
                 className="rounded-full px-6 py-4"
               />
               <Input
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
                 type="password"
                 className="rounded-full px-6 py-4"
               />
@@ -136,16 +174,23 @@ const Auth = () => {
             {/* Signup Form */}
             <TabsContent value="signup" className="flex flex-col gap-4">
               <Input
+                placeholder="Phone"
+                value={signupPhone}
+                onChange={(e) => setSignupPhone(e.target.value)}
+                type="tel"
+                className="rounded-full px-6 py-4"
+              />
+              <Input
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
                 type="email"
                 className="rounded-full px-6 py-4"
               />
               <Input
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
                 type="password"
                 className="rounded-full px-6 py-4"
               />

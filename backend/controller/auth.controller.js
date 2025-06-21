@@ -1,28 +1,33 @@
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
 import { compare } from "bcryptjs";
-import fs, { renameSync, unlinkSync } from "fs";
-import path from "path";
+import { renameSync, unlinkSync } from "fs";
 
-const maxAge = 3 * 24 * 60 * 60; // 3 days in seconds
-const createToken = (email, userId) => {
-    return jwt.sign({ email, userId }, process.env.JWT_SECRET_KEY, {
-        expiresIn: maxAge
-    });
-}
+const maxAge = 3 * 24 * 60 * 60;
+export const createToken = (user) => {
+    return jwt.sign(
+        {
+            userId: user._id,
+            email: user.email,
+            phoneNo: user.phoneNo,
+        },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: "3d" }
+    );
+};
 
 export const signup = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
+        const { email, phoneNo, password } = req.body;
+        if (!email || !password || !phoneNo) {
             return res.status(400).json({ message: "Email and password are required" });
         }
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ message: "User already exists" });
         }
-        const newUser = await User.create({ email, password });
-        const token = createToken(newUser.email, newUser._id);
+        const newUser = await User.create({ email, phoneNo, password });
+        const token = createToken(newUser);
         res.cookie("jwt", token, {
             httpOnly: true,
             maxAge: maxAge * 1000,
@@ -33,6 +38,7 @@ export const signup = async (req, res) => {
             message: "User created successfully",
             user: {
                 email: newUser.email,
+                phoneNo: newUser.phoneNo,
                 id: newUser.id,
                 firstName: newUser.firstName || "",
                 lastName: newUser.lastName || "",
@@ -49,43 +55,51 @@ export const signup = async (req, res) => {
 }
 export const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ message: "Email and password are required" });
+        const { identifier, password } = req.body;
+
+        if (!identifier || !password) {
+            return res.status(400).json({ message: "Email or phone and password are required" });
         }
-        const user = await User.findOne({ email });
+        const user = await User.findOne({
+            $or: [{ email: identifier }, { phoneNo: identifier }],
+        });
+
         if (!user) {
-            return res.status(400).json({ message: "Invalid email" });
+            return res.status(404).json({ message: "Ohh! you are not registred yet" });
         }
+
         const isMatch = await compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid password" });
         }
-        const token = createToken(user.email, user._id);
+
+        const token = createToken(user);
+
         res.cookie("jwt", token, {
             httpOnly: true,
             maxAge: maxAge * 1000,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "strict"
+            sameSite: "strict",
         });
+
         res.status(200).json({
             message: "Login successful",
             user: {
                 email: user.email,
+                phoneNo: user.phoneNo,
                 id: user.id,
                 firstName: user.firstName || "",
                 lastName: user.lastName || "",
                 image: user.image || "",
                 profileSetup: user.profileSetup || false,
-                color: user.color || ""
-
-            }
+                color: user.color || "",
+            },
         });
     } catch (error) {
-        console.log(error)
+        console.error("Login error:", error);
         res.status(500).json({ message: "Internal server error" });
     }
-}
+};
 export const getUserInfo = async (req, res) => {
     try {
         const userId = req.userId;
@@ -97,6 +111,7 @@ export const getUserInfo = async (req, res) => {
             message: "Login successful",
             user: {
                 email: user.email,
+                phoneNo: user.phoneNo,
                 id: user.id,
                 firstName: user.firstName || "",
                 lastName: user.lastName || "",
@@ -113,6 +128,7 @@ export const getUserInfo = async (req, res) => {
     }
 }
 export const updateProfile = async (req, res) => {
+    console.log("User ID:", req.userId);
     try {
         const userId = req.userId;
         const { firstName, lastName, color } = req.body;
@@ -177,7 +193,6 @@ export const removeProfileImage = async (req, res) => {
 
     }
 }
-
 export const logout = (req, res) => {
     try {
         res.clearCookie("jwt", "", {
