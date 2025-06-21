@@ -7,6 +7,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { MdFolderZip } from "react-icons/md";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getColor } from "@/lib/utils";
 const Message_container = () => {
   const scrollRef = useRef();
 
@@ -15,6 +17,7 @@ const Message_container = () => {
     chatData,
     messages,
     fetchMessages,
+    fetchGroupMessages,
     setIsDownloading,
     setFileDownloadProgress,
   } = useMessages();
@@ -24,6 +27,8 @@ const Message_container = () => {
   useEffect(() => {
     if (chatData?._id && chatType === "contact") {
       fetchMessages(chatData._id, chatType);
+    } else if (chatData?._id && chatType === "group") {
+      fetchGroupMessages(chatData._id, chatType);
     }
   }, [chatData?._id, chatType]);
 
@@ -47,6 +52,7 @@ const Message_container = () => {
             </div>
           )}
           {chatType === "contact" && renderDmMessages(message)}
+          {chatType === "group" && renderGroupMessages(message)}
         </div>
       );
     });
@@ -87,7 +93,6 @@ const Message_container = () => {
 
   const renderDmMessages = (message) => {
     const isSender = message.sender === userInfo.id;
-    console.log("message =>", message);
 
     return (
       <div className={`flex ${isSender ? "justify-end" : "justify-start"}`}>
@@ -144,6 +149,97 @@ const Message_container = () => {
         <div className="text-xs text-gray-600 text-right">
           {moment(message.timestamp).format("LT")}
         </div>
+      </div>
+    );
+  };
+
+  const renderGroupMessages = (message) => {
+    const isSender = message.sender._id === userInfo.id;
+    return (
+      <div className={`flex ${isSender ? "justify-end" : "justify-start"}`}>
+        {message.messageType === "text" && (
+          <div
+            className={`${
+              message.sender._id === userInfo._id
+                ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
+            } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+          >
+            {message.content}
+          </div>
+        )}
+        {message.messageType === "file" && (
+          <div
+            className={`${
+              message.sender._id === userInfo._id
+                ? "bg-[#8417ff]/5 text-[#8417ff]/90 border-[#8417ff]/50"
+                : "bg-[#2a2b33]/5 text-white/80 border-[#ffffff]/20"
+            } border inline-block p-4 rounded my-1 max-w-[50%] break-words`}
+          >
+            {checkIfImage(message.fileUrl) ? (
+              <div
+                className="cursor-pointer"
+                onClick={() => {
+                  setShowImage(true);
+                  setImageUrl(message.fileUrl);
+                }}
+              >
+                <img
+                  src={`${HOST}/${message.fileUrl}`}
+                  alt=""
+                  height={300}
+                  width={300}
+                />
+              </div>
+            ) : (
+              <div className="flex items-center justify-center gap-4">
+                <span className="text-white/80 text-3xl bg-black/20 rounded-full p-3">
+                  <MdFolderZip />
+                </span>
+                <span>{message.fileUrl.split("/").pop()}</span>
+                <span
+                  className="bg-black/20 p-3 text-2xl rounded-full hover:bg-black/50 cursor-pointer transition-all duration-300"
+                  onClick={() => downloadFile(message.fileUrl)}
+                >
+                  <IoMdArrowRoundDown />
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+        {message.sender._id !== userInfo.id ? (
+          <div className="flex gap-3 justify-start items-center">
+            <Avatar className="h-8 w-8 rounded-full overflow-hidden border-1 border-white">
+              {message?.sender?.image && (
+                <AvatarImage
+                  src={`${HOST}/${message.sender.image}`}
+                  alt="profile-photo"
+                  className="object-cover h-full w-full bg-black"
+                />
+              )}
+              <AvatarFallback
+                className={`uppercase h-8 w-8 text-lg flex items-center justify-center ${getColor(
+                  message.sender?.color
+                )} rounded-full`}
+              >
+                {message.sender.firstName
+                  ? message.sender.firstName.charAt(0)
+                  : message.sender.email.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-white/60 ">
+              {" "}
+              {`${message.sender.firstName} ${message.sender.lastName}`}
+            </span>
+            <span className="text-xs text-white/60">
+              {moment(message.timestamp).format("LT")}
+            </span>
+          </div>
+        ) : (
+          <span className="text-xs text-white/60 mgt-1">
+            {moment(message.timestamp).format("LT")}
+          </span>
+        )}
       </div>
     );
   };

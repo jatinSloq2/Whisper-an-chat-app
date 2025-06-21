@@ -21,3 +21,4 @@ export const UPLOAD_FILE = `${MSG_ROUTES}/upload-file`
 export const GROUP_ROUTES = "api/group"
 export const CREATE_NEW_GROUP = `${GROUP_ROUTES}/create-group`
 export const GET_USER_GROUPS = `${GROUP_ROUTES}/get-user-groups`
+export const GET_ALL_MSG_GROUP = `${GROUP_ROUTES}/get-group-messages`

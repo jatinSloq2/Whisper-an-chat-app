@@ -14,9 +14,7 @@ const Message_bar = () => {
   const fileInputRef = useRef();
   const socket = useSocket();
   const { userInfo } = useAppStore();
-  const { chatType, chatData, setIsuploading, setFileUploadProgress } =
-    useMessages();
-
+  const { chatType, chatData } = useMessages();
   const [message, setMessage] = useState("");
   const [showEmojiPickerOpen, setShowEmojiPickerOpen] = useState(false);
 
@@ -52,6 +50,14 @@ const Message_bar = () => {
         fileUrl: undefined,
       });
 
+    } else if (chatType === "group") {
+      socket.emit("send-group-message", {
+        sender: userInfo.id,
+        content: message,
+        messageType: "text",
+        fileUrl: undefined,
+        groupId: chatData._id,
+      });
       setMessage("");
     }
   };
@@ -69,7 +75,6 @@ const Message_bar = () => {
         const formData = new FormData();
         formData.append("file", file);
         const res = await apiClient.post(UPLOAD_FILE, formData);
-        console.log(res);
         if (res.status === 200 && res.data) {
           if (chatType === "contact") {
             socket.emit("sendMessage", {
@@ -78,6 +83,14 @@ const Message_bar = () => {
               recipient: chatData._id,
               messageType: "file",
               fileUrl: res.data.filePath,
+            });
+          } else if (chatType === "group") {
+            socket.emit("send-group-message", {
+              sender: userInfo.id,
+              content: undefined,
+              messageType: "file",
+              fileUrl: res.data.filePath,
+              groupId: chatData._id,
             });
           }
         }

@@ -5,9 +5,8 @@ import { HOST } from "@/utils/constant";
 import { getColor } from "@/lib/utils";
 
 const ContactsList = ({ contacts, isGroup = false }) => {
-  console.log(contacts)
-  const { chatType, chatData, setChatType, setChatData, setMessages } =
-    useMessages();
+  console.log(contacts);
+  const { chatData, setChatType, setChatData, setMessages } = useMessages();
 
   const handleClick = (contact) => {
     if (isGroup) {
@@ -61,7 +60,9 @@ const ContactsList = ({ contacts, isGroup = false }) => {
               </Avatar>
             )}
             {isGroup && (
-              <div className="bg-[#ffffff22] h-10 w-10 flex items-center justify-center rounded-full"></div>
+              <div className="bg-[#ffffff22] h-10 w-10 flex items-center justify-center rounded-full">
+                #
+              </div>
             )}
             {isGroup ? (
               <span>{contact.name}</span>

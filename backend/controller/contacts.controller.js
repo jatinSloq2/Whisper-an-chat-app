@@ -54,6 +54,7 @@ export const getContactsDmList = async (req, res) => {
                         },
                     },
                     lastMessageTime: { $first: "$timestamp" },
+                    lastMessage: { $first: "$content" },
                 },
             },
             {
@@ -70,7 +71,7 @@ export const getContactsDmList = async (req, res) => {
             {
                 $project: {
                     _id: 1,
-                    lastMessageTime: 1,
+                    lastMessage: 1,
                     email: "$contactInfo.email",
                     firstName: "$contactInfo.firstName",
                     lastName: "$contactInfo.lastName",
@@ -92,20 +93,20 @@ export const getContactsDmList = async (req, res) => {
 };
 
 export const getAllContacts = async (req, res) => {
-  try {
-    const users = await User.find(
-      { _id: { $ne: req.userId } },
-      "firstName lastName _id email"
-    );
+    try {
+        const users = await User.find(
+            { _id: { $ne: req.userId } },
+            "firstName lastName _id email"
+        );
 
-    const contacts = users.map((user) => ({
-      label: user.firstName ? `${user.firstName} ${user.lastName}` : user.email,
-      value : user._id
-    }));
+        const contacts = users.map((user) => ({
+            label: user.firstName ? `${user.firstName} ${user.lastName}` : user.email,
+            value: user._id
+        }));
 
-    return res.status(200).json({ contacts });
-  } catch (error) {
-    console.log({ error });
-    return res.status(500).send("Internal Server Error");
-  }
+        return res.status(200).json({ contacts });
+    } catch (error) {
+        console.log({ error });
+        return res.status(500).send("Internal Server Error");
+    }
 };
