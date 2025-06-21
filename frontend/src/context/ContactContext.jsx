@@ -19,6 +19,7 @@ export const ContactsProvider = ({ children }) => {
       if (res.data.contacts) {
         setContacts(res.data.contacts);
       }
+      console.log(res)
     } catch (err) {
       console.error("❌ Failed to fetch contacts:", err);
       setContacts([]);

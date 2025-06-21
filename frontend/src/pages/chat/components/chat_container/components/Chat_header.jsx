@@ -28,6 +28,8 @@ const Chat_header = () => {
     setFileDownloadProgress(0);
   };
 
+  console.log("chat data from header", chatData);
+
   return (
     <div className="h-[10vh] border-b-2 border-[#2f303b] flex items-center justify-between px-20">
       <div className="flex gap-5 items-center w-full justify-between">
@@ -61,9 +63,11 @@ const Chat_header = () => {
           </div>
           <div>
             {chatType === "group" && chatData?.name}
-            {chatType === "contact" && chatData?.firstName
-              ? `${chatData.firstName}  ${chatData.lastName}`
-              : chatData?.email}
+            {chatType === "contact" &&
+              (chatData?.contactName ||
+                (chatData.firstName
+                  ? `${chatData.firstName} ${chatData.lastName || ""}`
+                  : chatData.email))}
           </div>
         </div>
         <div className="flex items-center justify-center gap-5">
