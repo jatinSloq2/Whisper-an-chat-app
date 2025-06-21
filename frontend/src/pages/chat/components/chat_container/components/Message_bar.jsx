@@ -49,7 +49,6 @@ const Message_bar = () => {
         messageType: "text",
         fileUrl: undefined,
       });
-
     } else if (chatType === "group") {
       socket.emit("send-group-message", {
         sender: userInfo.id,
@@ -58,8 +57,8 @@ const Message_bar = () => {
         fileUrl: undefined,
         groupId: chatData._id,
       });
-      setMessage("");
     }
+    setMessage("");
   };
 
   const handleAttachmentClick = () => {

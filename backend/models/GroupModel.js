@@ -6,7 +6,7 @@ const groupSchema = new mongoose.Schema({
     required: true,
   },
   members: [{ type: mongoose.Schema.ObjectId, ref: "User", required: true }],
-  admin: { type: mongoose.Schema.ObjectId, ref: "User", required: true },
+  admins: [{ type: mongoose.Schema.ObjectId, ref: "User", required: true }],
   messages: [{ type: mongoose.Schema.ObjectId, ref: "Message" }],
   createdAt: {
     type: Date,

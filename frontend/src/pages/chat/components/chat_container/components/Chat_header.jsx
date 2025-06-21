@@ -16,6 +16,7 @@ const Chat_header = () => {
     setIsDownloading,
     setFileUploadProgress,
     setFileDownloadProgress,
+    setShowProfile,
   } = useMessages();
 
   const closeChat = () => {
@@ -28,12 +29,29 @@ const Chat_header = () => {
     setFileDownloadProgress(0);
   };
 
-  console.log("chat data from header", chatData);
+  console.log("ChatData in chat_header",chatData);
+
+  const displayName =
+    chatData?.contactName ||
+    chatData?.phoneNo ||
+    chatData?.contactEmail ||
+    "Unnamed";
+
+  const avatarLetter = (chatData?.contactName ||
+    chatData?.email ||
+    "U")[0].toUpperCase();
+
+    console.log("📦 chatData in Chat_header", chatData);
 
   return (
     <div className="h-[10vh] border-b-2 border-[#2f303b] flex items-center justify-between px-20">
       <div className="flex gap-5 items-center w-full justify-between">
-        <div className="flex gap-3 items-center justify-center">
+        <div
+          className="flex gap-3 items-center justify-center"
+          onClick={() => {
+            if (chatType && chatData) setShowProfile(true);
+          }}
+        >
           <div className="w-12 h-12 relative">
             {chatType === "contact" ? (
               <Avatar className="h-10 w-10 rounded-full overflow-hidden border-1 border-white">
@@ -49,9 +67,7 @@ const Chat_header = () => {
                       chatData?.color
                     )} rounded-full`}
                   >
-                    {chatData?.firstName
-                      ? chatData.firstName.charAt(0)
-                      : chatData?.email?.charAt(0)}
+                    {avatarLetter}
                   </div>
                 )}
               </Avatar>
@@ -61,14 +77,7 @@ const Chat_header = () => {
               </div>
             )}
           </div>
-          <div>
-            {chatType === "group" && chatData?.name}
-            {chatType === "contact" &&
-              (chatData?.contactName ||
-                (chatData.firstName
-                  ? `${chatData.firstName} ${chatData.lastName || ""}`
-                  : chatData.email))}
-          </div>
+          <div>{chatType === "group" ? chatData?.name : displayName}</div>
         </div>
         <div className="flex items-center justify-center gap-5">
           <button className="text-neutral-500 focus:outline-none focus:border-none focus:text-white duration-300 transition-all">

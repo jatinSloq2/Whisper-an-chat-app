@@ -19,12 +19,17 @@ export const createToken = (user) => {
 export const signup = async (req, res) => {
     try {
         const { email, phoneNo, password } = req.body;
+
         if (!email || !password || !phoneNo) {
-            return res.status(400).json({ message: "Email and password are required" });
+            return res.status(400).json({ message: "Email, phone number, and password are required" });
         }
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            return res.status(400).json({ message: "User already exists" });
+        const existingEmail = await User.findOne({ email });
+        if (existingEmail) {
+            return res.status(400).json({ message: "Email already in use" });
+        }
+        const existingPhone = await User.findOne({ phoneNo });
+        if (existingPhone) {
+            return res.status(400).json({ message: "Phone number already in use" });
         }
         const newUser = await User.create({ email, phoneNo, password });
         const token = createToken(newUser);
@@ -44,15 +49,15 @@ export const signup = async (req, res) => {
                 lastName: newUser.lastName || "",
                 image: newUser.image || "",
                 profileSetup: newUser.profileSetup || false
-
             }
         });
+
     } catch (error) {
         console.error("Signup error:", error);
         res.status(500).json({ message: "Internal server error" });
-
     }
-}
+};
+
 export const login = async (req, res) => {
     try {
         const { identifier, password } = req.body;

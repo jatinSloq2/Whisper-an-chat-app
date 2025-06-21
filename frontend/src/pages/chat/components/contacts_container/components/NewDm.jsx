@@ -48,12 +48,12 @@ const NewDm = () => {
     const contactData = contact.isRegistered
       ? {
           ...contact.linkedUser,
-          customName: contact.contactName,
+          contactName: contact.contactName,
           contactId: contact._id,
           isRegistered: true,
         }
       : {
-          customName: contact.contactName,
+          contactName: contact.contactName,
           email: contact.contactEmail || null,
           phoneNo: contact.contactPhoneNo || null,
           contactId: contact._id,

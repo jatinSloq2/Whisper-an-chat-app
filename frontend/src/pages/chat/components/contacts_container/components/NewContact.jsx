@@ -18,7 +18,6 @@ const NewContact = () => {
   const [loading, setLoading] = useState(false);
 
   const handleAddContact = async () => {
-  console.log("Form submitted"); // First log
   if (!contactName || (!contactEmail && !contactPhoneNo)) {
     toast.error("Name and at least email or phone number is required.");
     return;

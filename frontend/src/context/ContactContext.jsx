@@ -2,10 +2,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { GET_CONTACTS_DMS, GET_USER_GROUPS } from "@/utils/constant";
+import { useAppStore } from "@/store";
 
 const ContactsContext = createContext();
 
 export const ContactsProvider = ({ children }) => {
+  const {userInfo} = useAppStore()
   const [contacts, setContacts] = useState([]);
   const [groups, setGroups] = useState([]);
 
@@ -65,9 +67,11 @@ export const ContactsProvider = ({ children }) => {
   };
 
   useEffect(() => {
+  if (userInfo) {
     fetchContacts();
     fetchGroups();
-  }, []);
+  }
+}, [userInfo]);
 
   return (
     <ContactsContext.Provider

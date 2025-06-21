@@ -24,17 +24,13 @@ const ContactsList = ({ contacts, isGroup = false }) => {
     <div className="mt-5">
       {contacts.map((contact, index) => {
         const isActive = chatData && chatData._id === contact._id;
-        const displayName = contact.contactName
-          ? contact.contactName
-          : contact.firstName
-          ? `${contact.firstName} ${contact.lastName ?? ""}`
-          : contact.email;
+
+        const displayName =
+          contact.contactName || contact.phoneNo || contact.email || "Unknown";
 
         const avatarLetter = (contact.contactName ||
-          contact.firstName ||
           contact.email ||
           "U")[0].toUpperCase();
-
         return (
           <div
             key={index}
@@ -54,7 +50,9 @@ const ContactsList = ({ contacts, isGroup = false }) => {
                     />
                   ) : (
                     <div
-                      className={`uppercase h-full w-full text-lg flex items-center justify-center rounded-full ${getColor(contact.color)}`}
+                      className={`uppercase h-full w-full text-lg flex items-center justify-center rounded-full ${getColor(
+                        contact.color
+                      )}`}
                     >
                       {avatarLetter}
                     </div>
