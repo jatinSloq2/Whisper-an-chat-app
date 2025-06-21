@@ -1,10 +1,10 @@
-import React, { useEffect } from "react";
+import React from "react";
 import Profile_Part from "./components/Profile_Part";
 import NewDm from "./components/NewDm";
 import ContactsList from "@/components/ContactsList";
 import { useContacts } from "@/context/ContactContext";
 import NewChannel from "./components/NewChannel";
-import { useMessages } from "@/context/MessagesContext";
+import NewContact from "./components/NewContact";
 
 const Contacts_container = () => {
   const { contacts, groups } = useContacts();
@@ -15,6 +15,11 @@ const Contacts_container = () => {
         <Logo />
       </div>
       <div className="my-5">
+        
+        <div className="flex items-center justify-between pr-10 mb-5">
+          <Title text="Add Contacts" />
+          <NewContact/>
+        </div>
         <div className="flex items-center justify-between pr-10">
           <Title text="Direct Messages" />
           <NewDm />

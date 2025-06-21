@@ -20,7 +20,6 @@ import { apiClient } from "@/lib/api-client";
 import { HOST, SEARCH_CONTACTS } from "@/utils/constant";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { useAppStore } from "@/store";
 import { useMessages } from "@/context/MessagesContext"; 
 
 const NewDm = () => {

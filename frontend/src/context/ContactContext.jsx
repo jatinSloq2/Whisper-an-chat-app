@@ -77,6 +77,7 @@ export const ContactsProvider = ({ children }) => {
         upsertGroupToTop,
         upsertContactToTop,
         addGroup,
+        fetchContacts,
         fetchGroups,
       }}
     >
