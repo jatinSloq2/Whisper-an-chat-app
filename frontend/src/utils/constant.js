@@ -2,6 +2,8 @@ export const  HOST = import.meta.env.VITE_API_URL || 'http://localhost:7777';
 
 export const AUTH_ROUTES = "api/auth";
 export const SIGNUP_ROUTES = `${AUTH_ROUTES}/signup`;
+export const SIGNUP_REQUEST = `${AUTH_ROUTES}/signup-request`;
+export const OTP_VERIFY_ROUTES = `${AUTH_ROUTES}/verify-otp`;
 export const LOGIN_ROUTES = `${AUTH_ROUTES}/login`;
 export const LOGOUT_ROUTES = `${AUTH_ROUTES}/logout`;
 export const GET_USER_INFO = `${AUTH_ROUTES}/user-info`; 

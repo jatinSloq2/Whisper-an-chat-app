@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 
 import authRouter from './routes/auth.routes.js';
+import forgetPassRouter from './routes/forgetPass.routes.js';
 import contactRouter from './routes/contact.routes.js';
 import msgRouter from './routes/messages.routes.js';
 import groupRouter from './routes/group.routes.js';
@@ -33,6 +34,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/auth', authRouter);
+app.use('/api/forgetpassword', forgetPassRouter)
 app.use('/api/contact', contactRouter);
 app.use('/api/messages', msgRouter);
 app.use('/api/group', groupRouter)

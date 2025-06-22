@@ -27,13 +27,13 @@ const ContactsList = ({ contacts, isGroup = false }) => {
         console.log(contact);
         const displayName =
           contact.contactName ||
-          chatData.contactName ||
+          chatData?.contactName ||
           contact.phoneNo ||
           contact.email ||
           "Unknown";
 
         const avatarLetter = (contact.contactName ||
-          chatData.contactName ||
+          chatData?.contactName ||
           chatData?.email ||
           "U")[0].toUpperCase();
         return (
