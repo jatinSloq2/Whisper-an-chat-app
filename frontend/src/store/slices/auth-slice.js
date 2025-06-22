@@ -1,3 +1,6 @@
+import { apiClient } from "@/lib/api-client";
+import { GET_USER_INFO } from "@/utils/constant";
+
 export const createAuthSlice = (set) => ({
     userInfo: undefined,
     setUserInfo: (update) =>
@@ -7,4 +10,17 @@ export const createAuthSlice = (set) => ({
                     ? update(state.userInfo)
                     : { ...state.userInfo, ...update },
         })),
+    fetchUserInfo: async () => {
+        try {
+            const res = await apiClient.get(GET_USER_INFO);
+            if (res.status === 200 && res.data.user) {
+                set({ userInfo: res.data.user });
+            } else {
+                set({ userInfo: undefined });
+            }
+        } catch (error) {
+            console.error("Failed to fetch user info:", error);
+            set({ userInfo: undefined });
+        }
+    },
 });

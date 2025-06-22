@@ -25,30 +25,16 @@ const ProtectedRoute = ({ children }) => {
     return isAuthenticated ? <Navigate to={"/chat"} /> : children;
   };
 
-  const { userInfo, setUserInfo } = useAppStore();
   const [loading, setLoading] = useState(true);
+  const { userInfo, fetchUserInfo } = useAppStore();
 
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      try {
-        const res = await apiClient.get(GET_USER_INFO);
-        if (res.status === 200 && res.data.user) {
-          setUserInfo(res.data.user);
-        } else {
-          setUserInfo(undefined);
-        }
-      } catch (error) {
-        console.log(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (!userInfo) {
-      fetchUserInfo();
-    } else {
-      setLoading(false);
-    }
-  }, [userInfo, setUserInfo]);
+useEffect(() => {
+  const load = async () => {
+    if (!userInfo) await fetchUserInfo();
+    setLoading(false);
+  };
+  load();
+}, [userInfo, fetchUserInfo]);
 
   if (loading) {
     return <div>Loading...</div>;

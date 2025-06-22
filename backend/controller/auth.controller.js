@@ -4,7 +4,6 @@ import { otpStore } from "../utils/otpStore.js";
 import bcryptjs from "bcryptjs";
 import { renameSync, unlinkSync } from "fs";
 import { sendEmailOtp } from "../utils/emailService.js";
-import { sendSmsOtp } from "../utils/smsService.js"
 
 const maxAge = 3 * 24 * 60 * 60;
 export const createToken = (user) => {
@@ -18,7 +17,6 @@ export const createToken = (user) => {
         { expiresIn: "3d" }
     );
 };
-
 export const signupRequest = async (req, res) => {
     try {
         let { email, phoneNo, password } = req.body;
@@ -61,40 +59,44 @@ export const signupRequest = async (req, res) => {
 };
 export const verifyAndSignup = async (req, res) => {
     try {
-        const { email, emailOTP, phoneOTP } = req.body;
+        let { email, emailOTP, phoneOTP } = req.body;
+
+        email = email.trim();
+        emailOTP = emailOTP.trim().toString();
+        phoneOTP = phoneOTP.trim().toString();
+
+        console.log("🔐 Received OTP verification request for:", email);
+        console.log("📨 Email OTP:", emailOTP);
+        console.log("📱 Phone OTP:", phoneOTP);
+
         const entry = otpStore[email];
 
         if (!entry) {
+            console.warn("❌ No OTP entry found or request expired for:", email);
             return res.status(400).json({ message: "Signup request not found or expired" });
         }
 
         if (Date.now() > entry.expiresAt) {
+            console.warn("⏳ OTP expired for:", email);
             delete otpStore[email];
             return res.status(400).json({ message: "OTP expired" });
         }
 
-        if (entry.emailOTP !== emailOTP || entry.phoneOTP !== phoneOTP) {
+        console.log("📊 Stored OTPs:", {
+            emailOTP: entry.emailOTP,
+            phoneOTP: entry.phoneOTP,
+        });
+
+        console.log("🧪 Comparing OTPs → Email match:", entry.emailOTP === emailOTP, "| Phone match:", entry.phoneOTP === phoneOTP);
+
+        if (entry.emailOTP.toString() !== emailOTP || entry.phoneOTP.toString() !== phoneOTP) {
+            console.warn("❌ Invalid OTPs provided");
             return res.status(400).json({ message: "Invalid OTPs provided" });
         }
 
-        const newUser = new User({
-            email,
-            phoneNo: entry.phoneNo,
-            password: entry.password,
-        });
-
-        await newUser.save();
+        // Create new user
+        const newUser = User.create({ email, phoneNo: entry.phoneNo, password: entry.password, });
         delete otpStore[email];
-
-        const token = generateJwtToken(newUser.id);
-        const maxAge = 3 * 24 * 60 * 60;
-
-        res.cookie("jwt", token, {
-            httpOnly: true,
-            maxAge: maxAge * 1000,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-        });
 
         return res.status(201).json({
             message: "User created successfully",
@@ -109,7 +111,7 @@ export const verifyAndSignup = async (req, res) => {
             },
         });
     } catch (error) {
-        console.error("OTP verification error:", error);
+        console.error("🔥 OTP verification error:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 };

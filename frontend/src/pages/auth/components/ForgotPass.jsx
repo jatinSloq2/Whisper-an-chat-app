@@ -37,6 +37,7 @@ const ForgotPasswordForm = ({
       });
       if (res.status ===200) {
         setForgotStep(3);
+        setForgotOtp("")
         toast.success("OTP verified");
       } else {
         toast.error("Invalid OTP");
@@ -58,6 +59,8 @@ const ForgotPasswordForm = ({
         identifier: forgotIdentifier,
         password: newForgotPassword,
       });
+      setNewForgotPassword("")
+      setConfirmForgotPassword("")
       toast.success("Password reset successful! Please login.");
       setShowForgotPassword(false);
     } catch (err) {

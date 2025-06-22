@@ -18,7 +18,7 @@ import ForgotPasswordForm from "./components/ForgotPass";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { setUserInfo } = useAppStore();
+  const { setUserInfo, fetchUserInfo  } = useAppStore();
 
   const [showOtpForm, setShowOtpForm] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
@@ -142,7 +142,8 @@ const Auth = () => {
         phoneOTP: phoneOtp,
       });
 
-      if (res.data.message === "Signup successful") {
+      if (res.status === 201) {
+        await fetchUserInfo()
         toast.success("Signup completed!");
         navigate("/profile");
       } else {
