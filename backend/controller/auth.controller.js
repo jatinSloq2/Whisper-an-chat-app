@@ -219,7 +219,7 @@ export const addProfileImage = async (req, res) => {
             return res.status(400).json({ message: "No file uploaded" });
         }
         const date = new Date();
-        const fileName = "uploads/files/" + date.getTime() + "-" + req.file.originalname;
+        const fileName = "uploads/profiles/" + date.getTime() + "-" + req.file.originalname;
         renameSync(req.file.path, fileName);
         const updatedUser = await User.findByIdAndUpdate(req.userId, {
             image: fileName
@@ -241,10 +241,7 @@ export const removeProfileImage = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
-        if (user.image) {
-            unlinkSync(user.image);
-        }
-        user.image = null;
+        user.image = 'uploads/profiles/profile-picture.png';
         await user.save()
         return res.status(200).json({
             message: "Image removed succesfully"

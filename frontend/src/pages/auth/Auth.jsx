@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import LoginVisual from "../../assets/login2.png";
 import SignupVisual from "@/assets/signup.png";
-import victory from "../../assets/victory.svg";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ import ForgotPasswordForm from "./components/ForgotPass";
 
 const Auth = () => {
   const navigate = useNavigate();
-  const { setUserInfo, fetchUserInfo  } = useAppStore();
+  const { setUserInfo, fetchUserInfo } = useAppStore();
 
   const [showOtpForm, setShowOtpForm] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
@@ -143,7 +142,7 @@ const Auth = () => {
       });
 
       if (res.status === 201) {
-        await fetchUserInfo()
+        await fetchUserInfo();
         toast.success("Signup completed!");
         navigate("/profile");
       } else {
@@ -160,26 +159,17 @@ const Auth = () => {
       <div className="h-[80vh] w-[80vw] md:w-[90vw] lg:w-[70vw] xl:w-[60vw] bg-white shadow-2xl rounded-3xl grid xl:grid-cols-2 overflow-hidden">
         {/* Left: Form Side */}
         <div className="flex flex-col gap-6 items-center justify-center px-6">
-          <div className="text-center">
-            {activeTab === "login" ? (
-              <h1 className="text-4xl font-bold md:text-6xl">Welcome</h1>
-            ) : (
-              <h1 className="text-4xl font-bold md:text-6xl">Join Us</h1>
-            )}
-            <img
-              src={victory}
-              alt="Victory"
-              className="h-[80px] mx-auto mt-2"
-            />
-            {activeTab === "login" ? (
-              <p className="font-medium text-gray-600 mt-2">
-                Enter your details to login
-              </p>
-            ) : (
-              <p className="font-medium text-gray-600 mt-2">
-                Fill in the details to Sign up
-              </p>
-            )}
+          <div className="text-center space-y-2 md:space-y-4">
+            <h1 className="text-4xl md:text-6xl font-bold transition-all duration-300">
+              {activeTab === "login" ? "Welcome" : "Join Us"}{" "}
+              <span className="text-5xl">✌️</span>
+            </h1>
+
+            <p className="text-gray-600 text-sm md:text-base font-medium">
+              {activeTab === "login"
+                ? "Enter your details to login"
+                : "Fill in the details to sign up"}
+            </p>
           </div>
 
           <Tabs
@@ -188,16 +178,20 @@ const Auth = () => {
             value={activeTab}
             onValueChange={setActiveTab}
           >
-            <TabsList className="bg-transparent w-full grid grid-cols-2 mb-4">
+            <TabsList className="w-full grid grid-cols-2 gap-2 bg-transparent mb-4">
               <TabsTrigger
                 value="login"
-                className="data-[state=active]:border-purple-500 data-[state=active]:font-semibold border-b-2 p-3 rounded-full"
+                className="p-3 text-center border-b-2 border-transparent rounded-full transition-colors duration-200 
+               data-[state=active]:border-purple-500 data-[state=active]:font-semibold 
+               hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 Login
               </TabsTrigger>
               <TabsTrigger
                 value="signup"
-                className="data-[state=active]:border-purple-500 data-[state=active]:font-semibold border-b-2 p-3 rounded-full"
+                className="p-3 text-center border-b-2 border-transparent rounded-full transition-colors duration-200 
+               data-[state=active]:border-purple-500 data-[state=active]:font-semibold 
+               hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 Sign Up
               </TabsTrigger>
@@ -225,11 +219,11 @@ const Auth = () => {
                     Login
                   </Button>
                   <button
-                    className="text-sm text-blue-500 underline mt-2 hover:text-blue-700"
                     onClick={() => {
                       setShowForgotPassword(true);
                       setForgotStep(1);
                     }}
+                    className="text-xs font-medium text-purple-500 hover:text-purple-600 transition-colors duration-200 cursor-pointer"
                   >
                     Forgot Password?
                   </button>
@@ -291,11 +285,11 @@ const Auth = () => {
                     {isLoadingOtp ? "Requesting OTP..." : "Request OTP"}
                   </Button>
                   {isLoadingOtp && (
-                    <div className="flex justify-center">
-                      <p className="text-xs text-gray-500 text-center mt-1">
-                        Sending OTPs... please wait
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-gray-500">
+                        Sending OTP... please wait
                       </p>
-                      <div className="w-6 h-6 border-4 border-purple-400 border-t-transparent rounded-full animate-spin mt-2" />
                     </div>
                   )}
                 </>
@@ -324,7 +318,7 @@ const Auth = () => {
                   </Button>
                   <Button
                     variant="ghost"
-                    className="text-xs underline text-gray-500 hover:text-gray-700"
+                    className="text-xs bg-white hover:bg-white text-purple-500 hover:text-purple-600 cursor-pointer duration-300 transition-all"
                     onClick={() => {
                       setShowOtpForm(false);
                       setIsLoadingOtp(false);
