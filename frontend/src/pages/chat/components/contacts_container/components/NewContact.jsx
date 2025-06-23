@@ -17,10 +17,8 @@ import { apiClient } from "@/lib/api-client";
 import { useContacts } from "@/context/ContactContext";
 import { toast } from "sonner";
 import { ADD_CONTACTS } from "@/utils/constant";
-import { FiUserPlus } from "react-icons/fi";
-import { User, User2Icon, UserPlus } from "lucide-react";
 
-const NewContact = ({trigger}) => {
+const NewContact = ({ trigger }) => {
   const [open, setOpen] = useState(false);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -58,12 +56,14 @@ const NewContact = ({trigger}) => {
   return (
     <>
       {/* Trigger with Tooltip */}
-            <Tooltip delayDuration={400}>
-      
+      <Tooltip delayDuration={400}>
         <TooltipTrigger asChild>
           <div
-            onClick={(e) =>{ e.stopPropagation(); setOpen(true)}}
-            className=""
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpen(true);
+            }}
+            className="cursor-pointer"
           >
             {trigger}
           </div>
@@ -73,35 +73,42 @@ const NewContact = ({trigger}) => {
         </TooltipContent>
       </Tooltip>
 
-      {/* Modal Dialog */}
+      {/* Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-[#1b1c24] text-white max-w-md">
+        <DialogContent className="bg-white border-none shadow-2xl rounded-xl w-[400px] max-w-full h-[350px] flex flex-col gap-4">
           <DialogHeader>
-            <DialogTitle>Add New Contact</DialogTitle>
-            <DialogDescription className="text-sm text-gray-400">
-              Start a chat with a registered contact or add them now 
+            <DialogTitle className="text-lg text-purple-400 font-semibold">
+              Add New Contact
+            </DialogTitle>
+            <DialogDescription className="text-sm text-neutral-400">
+              Start a conversation by saving the contact first.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
+
+          <div className="flex flex-col gap-4 pt-2">
             <Input
               placeholder="Name"
               value={contactName}
               onChange={(e) => setContactName(e.target.value)}
-              className="bg-[#2c2e3b] border-none"
+              className="rounded-md p-3 border border-gray-300 shadow-sm"
             />
             <Input
               placeholder="Email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
-              className="bg-[#2c2e3b] border-none"
+              className="rounded-md p-3 border border-gray-300 shadow-sm"
             />
             <Input
               placeholder="Phone Number"
               value={contactPhoneNo}
               onChange={(e) => setContactPhoneNo(e.target.value)}
-              className="bg-[#2c2e3b] border-none"
+              className="rounded-md p-3 border border-gray-300 shadow-sm"
             />
-            <Button onClick={handleAddContact} disabled={loading}>
+            <Button
+              onClick={handleAddContact}
+              disabled={loading}
+              className="bg-[#8338ec] hover:bg-[#702ed9] transition text-white mt-2"
+            >
               {loading ? "Adding..." : "Add Contact"}
             </Button>
           </div>

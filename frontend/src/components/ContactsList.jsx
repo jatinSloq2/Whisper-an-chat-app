@@ -21,7 +21,6 @@ const ContactsList = ({ contacts }) => {
     <div className="">
       {contacts.map((contact, index) => {
         const isActive = chatData && chatData._id === contact._id;
-
         const displayName =
           contact.contactName ||
           contact.phoneNo ||
@@ -30,7 +29,6 @@ const ContactsList = ({ contacts }) => {
           "Unknown";
 
         const avatarLetter = displayName[0]?.toUpperCase() || "U";
-
         return (
           <div
             key={index}
@@ -42,29 +40,24 @@ const ContactsList = ({ contacts }) => {
             }`}
           >
             {/* Avatar */}
-            {contact.isGroup ? (
-              <div className="h-10 w-10 flex items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-base shadow-sm">
-                #
-              </div>
-            ) : (
-              <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-sm">
-                {contact.image ? (
-                  <AvatarImage
-                    src={`${HOST}/${contact.image}`}
-                    alt="profile"
-                    className="object-cover h-full w-full"
-                  />
-                ) : (
-                  <div
-                    className={`uppercase h-full w-full flex items-center justify-center text-base ${getColor(
-                      contact.color
-                    )}`}
-                  >
-                    {avatarLetter}
-                  </div>
-                )}
-              </Avatar>
-            )}
+
+            <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-sm">
+              {contact.image ? (
+                <AvatarImage
+                  src={`${HOST}/${contact.image}`}
+                  alt="profile"
+                  className="object-cover h-full w-full"
+                />
+              ) : (
+                <div
+                  className={`uppercase h-full w-full flex items-center justify-center text-base ${getColor(
+                    contact.color
+                  )}`}
+                >
+                  {avatarLetter}
+                </div>
+              )}
+            </Avatar>
 
             {/* Info */}
             <div className="flex-1 overflow-hidden">

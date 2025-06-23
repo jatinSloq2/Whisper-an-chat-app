@@ -8,6 +8,11 @@ const groupSchema = new mongoose.Schema({
   members: [{ type: mongoose.Schema.ObjectId, ref: "User", required: true }],
   admins: [{ type: mongoose.Schema.ObjectId, ref: "User", required: true }],
   messages: [{ type: mongoose.Schema.ObjectId, ref: "Message" }],
+   image: {
+        type: String,
+        required: false ,
+        default : "uploads/profiles/profile-group.png"
+    },
   createdAt: {
     type: Date,
     default: Date.now(),

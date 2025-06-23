@@ -1,27 +1,7 @@
 import React from "react";
-import Profile_Part from "./components/Profile_Part";
 import NewDm from "./components/NewDm";
 import ContactsList from "@/components/ContactsList";
 import { useContacts } from "@/context/ContactContext";
-import NewChannel from "./components/NewChannel";
-import NewContact from "./components/NewContact";
-import { BsThreeDotsVertical } from "react-icons/bs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
-import { FaComments, FaUser, FaUserPlus } from "react-icons/fa";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { MessageSquare } from "lucide-react";
 import Logo from "./components/Logo";
 
 const Contacts_container = () => {
@@ -31,9 +11,11 @@ const Contacts_container = () => {
     isGroup: Array.isArray(c.members),
   }));
 
+  console.log(contacts)
+
   return (
     <div
-      className={`relative md:w-[35vw] xl:w-[25vw] bg-gray-100 border-r-1 border-gray-300`}
+      className={`relative w-full md:w-[35vw] xl:w-[25vw] bg-gray-100 border-r-1 border-gray-300`}
     >
       {/* Logo */}
       <div className="pt-3">

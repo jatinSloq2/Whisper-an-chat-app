@@ -13,7 +13,15 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { GroupIcon, LogOut, MessageSquare, Search, User, Users, X } from "lucide-react";
+import {
+  GroupIcon,
+  LogOut,
+  MessageSquare,
+  Search,
+  User,
+  Users,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import NewDm from "./NewDm";
 import NewContact from "./NewContact";
@@ -39,20 +47,27 @@ const Logo = ({ unifiedContacts }) => {
   };
 
   const filteredContacts = unifiedContacts?.filter((contact) => {
+    const search = searchTerm.toLowerCase();
     const name = contact.contactName || contact.firstName || contact.name || "";
-    return name.toLowerCase().includes(searchTerm.toLowerCase());
+    const email = contact.email || "";
+    const phone = contact.phoneNo || "";
+    return (
+      phone.toLowerCase().includes(search) ||
+      name.toLowerCase().includes(search) ||
+      email.toLowerCase().includes(search)
+    );
   });
 
-    const logout = async () => {
-      try {
-        const res = await apiClient.post(LOGOUT_ROUTES);
-        if (res.status === 200) {
-          window.location.href = "/auth";
-        }
-      } catch (error) {
-        console.log(error);
+  const logout = async () => {
+    try {
+      const res = await apiClient.post(LOGOUT_ROUTES);
+      if (res.status === 200) {
+        window.location.href = "/auth";
       }
-    };
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <>
@@ -72,7 +87,10 @@ const Logo = ({ unifiedContacts }) => {
               />
 
               <button
-                onClick={() => setSearchOpen(false)}
+                onClick={() => {
+                  setSearchOpen(false);
+                  setSearchTerm("");
+                }}
                 className="hover:text-red-500 text-gray-500 transition"
               >
                 <X className="w-5 h-5" />
@@ -81,58 +99,71 @@ const Logo = ({ unifiedContacts }) => {
           </div>
         )}
 
-        {searchTerm && filteredContacts?.length > 0 && (
+        {searchTerm && (
           <div className="absolute top-20 left-1/2 transform -translate-x-1/2 w-full max-w-3xl bg-white shadow-xl rounded-xl z-50 p-4 border border-gray-200">
-            <div className="flex flex-col divide-y divide-gray-100 max-h-72 overflow-y-auto scroll-smooth">
-              {filteredContacts.map((contact) => {
-                const displayName =
-                  contact.contactName ||
-                  contact.name ||
-                  contact.phoneNo ||
-                  `${contact.firstName ?? ""} ${contact.lastName ?? ""}`.trim();
-                const infoLine = !contact.isGroup
-                  ? contact.email || contact.phoneNo || "No contact info"
-                  : "Group";
-                return (
-                  <div
-                    key={contact._id}
-                    className="flex items-center gap-4 p-3 hover:bg-gray-50 transition rounded-lg cursor-pointer"
-                    onClick={() => {
-                      handleClick(contact);
-                      setSearchOpen(false);
-                      setSearchTerm("");
-                    }}
-                  >
-                    {/* Avatar */}
-                    <div className="flex-shrink-0">
-                      {contact.image ? (
-                        <img
-                          src={`${HOST}/${contact.image}`}
-                          alt="avatar"
-                          className="w-10 h-10 rounded-full object-cover border border-gray-300 shadow-sm"
-                        />
-                      ) : contact.isGroup ? (
-                        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 h-11 w-11 flex items-center justify-center rounded-full text-white text-lg font-semibold shadow-inner">
-                          #
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-[#8338ec] font-semibold text-sm uppercase">
-                          {(contact.contactName || contact.firstName || "U")[0]}
-                        </div>
-                      )}
-                    </div>
+            {filteredContacts?.length > 0 ? (
+              <div className="flex flex-col divide-y divide-gray-100 max-h-72 overflow-y-auto scroll-smooth">
+                {filteredContacts.map((contact) => {
+                  const displayName =
+                    contact.contactName ||
+                    contact.name ||
+                    contact.phoneNo ||
+                    `${contact.firstName ?? ""} ${
+                      contact.lastName ?? ""
+                    }`.trim();
 
-                    {/* Info */}
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-800">
-                        {displayName}
-                      </span>
-                      <span className="text-xs text-gray-500">{infoLine}</span>
+                  const infoLine = !contact.isGroup
+                    ? contact.email || contact.phoneNo || "No contact info"
+                    : "Group";
+
+                  return (
+                    <div
+                      key={contact._id}
+                      className="flex items-center gap-4 p-3 hover:bg-gray-50 transition rounded-lg cursor-pointer"
+                      onClick={() => {
+                        handleClick(contact);
+                        setSearchOpen(false);
+                        setSearchTerm("");
+                      }}
+                    >
+                      <div className="flex-shrink-0">
+                        {contact.image ? (
+                          <img
+                            src={`${HOST}/${contact.image}`}
+                            alt="avatar"
+                            className="w-10 h-10 rounded-full object-cover border border-gray-300 shadow-sm"
+                          />
+                        ) : contact.isGroup ? (
+                          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 h-11 w-11 flex items-center justify-center rounded-full text-white text-lg font-semibold shadow-inner">
+                            #
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-[#8338ec] font-semibold text-sm uppercase">
+                            {
+                              (contact.contactName ||
+                                contact.firstName ||
+                                "U")[0]
+                            }
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium text-gray-800">
+                          {displayName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {infoLine}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-gray-500 text-sm">
+                No matching contacts found.
+              </div>
+            )}
           </div>
         )}
 

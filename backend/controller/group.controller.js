@@ -36,8 +36,6 @@ export const createGroup = async (request, response) => {
 export const getUserGroups = async (request, response) => {
   try {
     const userId = new mongoose.Types.ObjectId(request.userId);
-
-    // Get groups with member & admin info, and messages sorted by latest
     const groups = await Group.find({
       $or: [{ admins: userId }, { members: userId }],
     })
@@ -45,7 +43,7 @@ export const getUserGroups = async (request, response) => {
       .populate("admins", "firstName lastName email")
       .populate({
         path: "messages",
-        options: { sort: { createdAt: -1 }, limit: 1 }, // only fetch latest message
+        options: { sort: { createdAt: -1 }, limit: 1 },
         populate: {
           path: "sender",
           select: "firstName lastName email image color",
@@ -53,21 +51,23 @@ export const getUserGroups = async (request, response) => {
       })
       .sort({ updatedAt: -1 });
 
-    // Attach lastMessage and lastMessageTime to each group
     const groupsWithLastMsg = groups.map((group) => {
       const lastMessageObj = group.messages?.[0];
       const lastMessage = lastMessageObj?.content || null;
       const lastMessageTime = lastMessageObj?.createdAt || null;
 
-      return {
-        ...group.toObject(),
+          return {
+        _id: group._id,
+        name: group.name,
+        image: group.image, 
+        members: group.members,
+        admins: group.admins,
         lastMessage,
         lastMessageTime,
+        updatedAt: group.updatedAt,
+        createdAt: group.createdAt,
       };
     });
-
-    console.log("📦 User Groups with last messages:", groupsWithLastMsg);
-
     return response.status(200).json({ groups: groupsWithLastMsg });
   } catch (error) {
     console.log("❌ Error in getUserGroups:", error);

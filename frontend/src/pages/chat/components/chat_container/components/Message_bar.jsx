@@ -14,7 +14,7 @@ const Message_bar = () => {
   const fileInputRef = useRef();
   const socket = useSocket();
   const { userInfo } = useAppStore();
-  const { chatType, chatData } = useMessages();
+  const { chatType, chatData , fetchContacts, fetchGroups } = useMessages();
   const [message, setMessage] = useState("");
   const [showEmojiPickerOpen, setShowEmojiPickerOpen] = useState(false);
 
@@ -59,6 +59,9 @@ const Message_bar = () => {
       });
     }
     setMessage("");
+    fetchContacts()
+    fetchGroups()
+
   };
 
   const handleAttachmentClick = () => {

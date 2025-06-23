@@ -40,7 +40,6 @@ export const searchContacts = async (req, res) => {
 export const getContactsDmList = async (req, res) => {
   try {
     let userId = new mongoose.Types.ObjectId(req.userId);
-
     const contacts = await Message.aggregate([
       {
         $match: {
@@ -124,7 +123,7 @@ export const getContactsDmList = async (req, res) => {
         $sort: { lastMessageTime: -1 },
       },
     ]);
-
+console.log("Contacts", contacts)
     return res.status(200).json({ contacts });
   } catch (error) {
     console.log(error);
@@ -136,22 +135,32 @@ export const getAllContacts = async (req, res) => {
   try {
     const userId = req.userId;
     const userContacts = await Contact.find({ owner: userId });
-    const contactUserIds = userContacts
-      .filter((c) => c.linkedUser)
-      .map((c) => c.linkedUser);
+    const allEmails = userContacts.map((c) => c.contactEmail).filter(Boolean);
+    const allPhones = userContacts.map((c) => c.contactPhoneNo).filter(Boolean);
+    const matchedUsers = await User.find({
+      $or: [
+        { email: { $in: allEmails } },
+        { phoneNo: { $in: allPhones } },
+      ],
+    }, "firstName lastName _id email phoneNo image");
 
-    const linkedUsers = await User.find(
-      { _id: { $in: contactUserIds } },
-      "firstName lastName _id email phoneNo"
-    );
     const contacts = userContacts.map((contact) => {
-      const linked = linkedUsers.find(
-        (user) => user._id.toString() === contact.linkedUser?.toString()
+      let matchedUser = matchedUsers.find(
+        (u) =>
+          u.email === contact.contactEmail ||
+          u.phoneNo === contact.contactPhoneNo
       );
-
+      const label =
+        contact.contactName ||
+        `${matchedUser?.firstName ?? ""} ${matchedUser?.lastName ?? ""}`.trim() ||
+        matchedUser?.email ||
+        matchedUser?.phoneNo ||
+        "Unnamed";
       return {
-        label: contact.contactName || `${linked?.firstName ?? ""} ${linked?.lastName ?? ""}`.trim() || linked?.email || linked?.phoneNo || "Unnamed",
-        value: linked?._id || contact._id,
+        label,
+        value: matchedUser?._id || contact._id,
+        isRegistered: !!matchedUser,
+        image: matchedUser?.image || null,
       };
     });
 

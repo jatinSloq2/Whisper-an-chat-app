@@ -3,25 +3,24 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { GET_CONTACTS_DMS, GET_USER_GROUPS } from "@/utils/constant";
 import { useAppStore } from "@/store";
+import { useMessages } from "./MessagesContext";
 
 const ContactsContext = createContext();
 
 export const ContactsProvider = ({ children }) => {
-  const {userInfo} = useAppStore()
+  const { userInfo } = useAppStore();
+  const { messages } = useMessages();
   const [contacts, setContacts] = useState([]);
   const [groups, setGroups] = useState([]);
 
-  const addGroup = (group) => {
-    setGroups((prev) => [...prev, group]);
-  };
-
   const fetchContacts = async () => {
+    console.log("I am clled");
     try {
       const res = await apiClient.get(GET_CONTACTS_DMS);
       if (res.data.contacts) {
         setContacts(res.data.contacts);
       }
-      console.log(res)
+      console.log(res);
     } catch (err) {
       console.error("❌ Failed to fetch contacts:", err);
       setContacts([]);
@@ -39,22 +38,29 @@ export const ContactsProvider = ({ children }) => {
       setGroups([]);
     }
   };
+  
+  useEffect(() => {
+    if (userInfo) {
+      fetchContacts();
+      fetchGroups();
+    }
+  }, [messages, userInfo]);
 
   const upsertContactToTop = (contact) => {
-     console.log("💡 Upserting contact:", contact);
-  setContacts((prevContacts) => {
-    const index = prevContacts.findIndex((c) => c._id === contact._id);
+    console.log("💡 Upserting contact:", contact);
+    setContacts((prevContacts) => {
+      const index = prevContacts.findIndex((c) => c._id === contact._id);
 
-    if (index > -1) {
-      const updated = [...prevContacts];
-      const mergedContact = { ...updated[index], ...contact };
-      updated.splice(index, 1);
-      return [mergedContact, ...updated]; 
-    } else {
-      return [contact, ...prevContacts];
-    }
-  });
-};
+      if (index > -1) {
+        const updated = [...prevContacts];
+        const mergedContact = { ...updated[index], ...contact };
+        updated.splice(index, 1);
+        return [mergedContact, ...updated];
+      } else {
+        return [contact, ...prevContacts];
+      }
+    });
+  };
 
   const upsertGroupToTop = (group) => {
     setGroups((prevGroups) => {
@@ -69,12 +75,6 @@ export const ContactsProvider = ({ children }) => {
     });
   };
 
-  useEffect(() => {
-  if (userInfo) {
-    fetchContacts();
-    fetchGroups();
-  }
-}, [userInfo]);
 
   return (
     <ContactsContext.Provider
@@ -84,7 +84,6 @@ export const ContactsProvider = ({ children }) => {
         setGroups,
         upsertGroupToTop,
         upsertContactToTop,
-        addGroup,
         fetchContacts,
         fetchGroups,
       }}
