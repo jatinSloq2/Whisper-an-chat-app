@@ -6,13 +6,24 @@ import User_profile from "./components/User_profile";
 import { useMessages } from "@/context/MessagesContext";
 
 const Chat_container = () => {
-   const { showProfile } = useMessages(); 
+  const { showProfile } = useMessages();
+
   return (
-    <div className="fixed top-0 h-[100vh] bg-[#1b1c25] flex flex-col md:static md:flex-1">
-      <Chat_header />
-      <Message_container />
-      <Message_bar />
-       {showProfile && <User_profile />}
+    <div className="fixed inset-0 md:static md:flex-1 bg-gray-100 text-black">
+      <div className="relative flex flex-col h-full w-full">
+        {/* Main Chat Area */}
+        <div className="flex flex-col h-full">
+          <Chat_header />
+          <Message_container />
+          <Message_bar />
+        </div>
+
+        {showProfile && (
+          <div className="absolute top-0 right-0 h-full z-50">
+            <User_profile />
+          </div>
+        )}
+      </div>
     </div>
   );
 };

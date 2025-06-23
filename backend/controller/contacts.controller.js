@@ -47,7 +47,7 @@ export const getContactsDmList = async (req, res) => {
           $or: [{ sender: userId }, { recipient: userId }],
         },
       },
-      { $sort: { timestamp: -1 } },
+      { $sort: { createdAt: -1 } },
       {
         $group: {
           _id: {
@@ -57,7 +57,7 @@ export const getContactsDmList = async (req, res) => {
               else: "$sender",
             },
           },
-          lastMessageTime: { $first: "$timestamp" },
+          lastMessageTime: { $first: "$createdAt" },
           lastMessage: { $first: "$content" },
         },
       },

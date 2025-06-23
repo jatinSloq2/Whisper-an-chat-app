@@ -8,9 +8,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import React, { useState } from "react";
-import { FaPlus } from "react-icons/fa";
 import { Input } from "@/components/ui/input";
 import Lottie from "react-lottie";
 import { animationDefaultOptions, getColor } from "@/lib/utils";
@@ -19,8 +19,9 @@ import { HOST, SEARCH_CONTACTS } from "@/utils/constant";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { useMessages } from "@/context/MessagesContext";
+import { MessageSquare } from "lucide-react";
 
-const NewDm = () => {
+const NewDm = ({trigger }) => {
   const { setChatType, setChatData, setMessages } = useMessages();
   const [openNewContactModal, setOpenNewContactModal] = useState(false);
   const [searchedContacts, setsearchedContacts] = useState([]);
@@ -77,25 +78,29 @@ const NewDm = () => {
   };
   return (
     <>
-      <Tooltip>
+      <Tooltip delayDuration={400}>
         <TooltipTrigger>
-          <FaPlus
-            className="text-neutral-400 font-light text-opacity-90 text-start hover:text-neutral-100 duration-300 transition-all"
-            onClick={() => {
-              setOpenNewContactModal(true);
-            }}
-          />
+          <div
+           onClick={(e) => {
+            e.stopPropagation();
+            setOpenNewContactModal(true);}}
+            className="bg-[#8338ec] hover:bg-[#702ed9] w-10 h-10 p-2 rounded-full flex items-center justify-center shadow-lg transition"
+          >
+            <MessageSquare className="text-white text-xl" />
+          </div>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent side="left">
           <p>Add new chat</p>
         </TooltipContent>
       </Tooltip>
-      {/* {This */}
 
       <Dialog open={openNewContactModal} onOpenChange={setOpenNewContactModal}>
         <DialogContent className="bg-[#181920] border-none text-white w-[500px] h-[400px] flex flex-col">
           <DialogHeader>
             <DialogTitle>Please select a contact</DialogTitle>
+            <DialogDescription className="text-sm text-gray-400">
+              Start a chat with a registered contact or invite someone new.
+            </DialogDescription>
           </DialogHeader>
           <div>
             <Input

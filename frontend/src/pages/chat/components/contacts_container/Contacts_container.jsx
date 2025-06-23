@@ -5,81 +5,58 @@ import ContactsList from "@/components/ContactsList";
 import { useContacts } from "@/context/ContactContext";
 import NewChannel from "./components/NewChannel";
 import NewContact from "./components/NewContact";
+import { BsThreeDotsVertical } from "react-icons/bs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useNavigate } from "react-router-dom";
+import { FaComments, FaUser, FaUserPlus } from "react-icons/fa";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { MessageSquare } from "lucide-react";
+import Logo from "./components/Logo";
 
 const Contacts_container = () => {
   const { contacts, groups } = useContacts();
+  const unifiedContacts = [...contacts, ...groups].map((c) => ({
+    ...c,
+    isGroup: Array.isArray(c.members),
+  }));
 
   return (
-    <div className="relative md:w-[35vw] xl:w-[20vw] bg-[#1b1c24] border-r-2 border-[#2f303b]">
+    <div
+      className={`relative md:w-[35vw] xl:w-[25vw] bg-gray-100 border-r-1 border-gray-300`}
+    >
+      {/* Logo */}
       <div className="pt-3">
-        <Logo />
+        <Logo unifiedContacts={unifiedContacts} />
       </div>
+
       <div className="my-5">
-        
-        <div className="flex items-center justify-between pr-10 mb-5">
-          <Title text="Add Contacts" />
-          <NewContact/>
-        </div>
-        <div className="flex items-center justify-between pr-10">
-          <Title text="Direct Messages" />
-          <NewDm />
-        </div>
-        <div className="max-h-[38vh] overflow-y-auto scrollbar-hidden">
-          <ContactsList contacts={contacts} />
+        <div className="max-h-[76vh] overflow-y-auto scrollbar-hidden">
+          <ContactsList contacts={unifiedContacts} />
         </div>
       </div>
-      <div className="my-5">
-        <div className="flex items-center justify-between pr-10">
-          <Title text="Group Chats" />
-          <NewChannel />
-        </div>
-        <div className="max-h-[38vh] overflow-y-auto scrollbar-hidden">
-          <ContactsList contacts={groups} isGroup={true} />
-        </div>
+      <div className="absolute bottom-10 right-5 flex flex-col gap-4 z-50">
+        <NewDm />
       </div>
-      <Profile_Part />
     </div>
   );
 };
 
 export default Contacts_container;
 
-const Logo = () => {
-  return (
-    <div className="flex p-5  justify-start items-center gap-2">
-      <svg
-        id="logo-38"
-        width="78"
-        height="32"
-        viewBox="0 0 78 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {" "}
-        <path
-          d="M55.5 0H77.5L58.5 32H36.5L55.5 0Z"
-          className="ccustom"
-          fill="#8338ec"
-        ></path>{" "}
-        <path
-          d="M35.5 0H51.5L32.5 32H16.5L35.5 0Z"
-          className="ccompli1"
-          fill="#975aed"
-        ></path>{" "}
-        <path
-          d="M19.5 0H31.5L12.5 32H0.5L19.5 0Z"
-          className="ccompli2"
-          fill="#a16ee8"
-        ></path>{" "}
-      </svg>
-      <span className="text-3xl font-semibold ">Syncronus</span>
-    </div>
-  );
-};
-
 const Title = ({ text }) => {
   return (
-    <h6 className="uppercase tracking-widest text-neutral-400 pl-10 font-light  text-opacity-90  text-sm">
+    <h6 className="uppercase tracking-widest text-black font-light pl-10 text-opacity-90 text-sm">
       {text}
     </h6>
   );

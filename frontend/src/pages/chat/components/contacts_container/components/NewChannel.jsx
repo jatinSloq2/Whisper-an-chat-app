@@ -17,13 +17,15 @@ import { CREATE_NEW_GROUP, GET_ALL_CONTACTS } from "@/utils/constant";
 import { Button } from "@/components/ui/button";
 import MultipleSelector from "@/components/ui/multipleselect";
 import { useContacts } from "@/context/ContactContext";
+import { MdGroupAdd } from "react-icons/md";
+import { GroupIcon } from "lucide-react";
 
-const NewChannel = () => {
+const NewChannel = ({ trigger }) => {
   const { addGroup } = useContacts();
 
   const [newChannelModel, setNewChannelModel] = useState(false);
   const [allContacts, setAllContacts] = useState([]);
-const [selectedContacts, setSelectedContacts] = useState([]);
+  const [selectedContacts, setSelectedContacts] = useState([]);
   const [groupName, setGroupName] = useState("");
 
   useEffect(() => {
@@ -55,16 +57,19 @@ const [selectedContacts, setSelectedContacts] = useState([]);
   };
   return (
     <>
-      <Tooltip>
+      <Tooltip delayDuration={400}>
         <TooltipTrigger>
-          <FaPlus
-            className="text-neutral-400 font-light text-opacity-90 text-start hover:text-neutral-100 duration-300 transition-all"
-            onClick={() => {
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
               setNewChannelModel(true);
             }}
-          />
+            className=""
+          >
+            {trigger}
+          </div>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent side="left">
           <p>Add new Group</p>
         </TooltipContent>
       </Tooltip>

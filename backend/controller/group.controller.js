@@ -37,13 +37,40 @@ export const getUserGroups = async (request, response) => {
   try {
     const userId = new mongoose.Types.ObjectId(request.userId);
 
+    // Get groups with member & admin info, and messages sorted by latest
     const groups = await Group.find({
       $or: [{ admins: userId }, { members: userId }],
-    }).populate("members", "firstName lastName email image color").populate("admins", "firstName lastName email").sort({ updatedAt: -1 });
-    console.log(groups)
-    return response.status(201).json({ groups });
+    })
+      .populate("members", "firstName lastName email image color")
+      .populate("admins", "firstName lastName email")
+      .populate({
+        path: "messages",
+        options: { sort: { createdAt: -1 }, limit: 1 }, // only fetch latest message
+        populate: {
+          path: "sender",
+          select: "firstName lastName email image color",
+        },
+      })
+      .sort({ updatedAt: -1 });
+
+    // Attach lastMessage and lastMessageTime to each group
+    const groupsWithLastMsg = groups.map((group) => {
+      const lastMessageObj = group.messages?.[0];
+      const lastMessage = lastMessageObj?.content || null;
+      const lastMessageTime = lastMessageObj?.createdAt || null;
+
+      return {
+        ...group.toObject(),
+        lastMessage,
+        lastMessageTime,
+      };
+    });
+
+    console.log("📦 User Groups with last messages:", groupsWithLastMsg);
+
+    return response.status(200).json({ groups: groupsWithLastMsg });
   } catch (error) {
-    console.log({ error });
+    console.log("❌ Error in getUserGroups:", error);
     return response.status(500).send("Internal Server Error");
   }
 };
@@ -71,3 +98,5 @@ export const getAllGroupMessages = async (req, res) => {
     return res.status(500).send("Internal Server Error");
   }
 };
+
+

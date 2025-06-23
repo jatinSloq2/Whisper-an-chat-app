@@ -29,8 +29,6 @@ const Chat_header = () => {
     setFileDownloadProgress(0);
   };
 
-  console.log("ChatData in chat_header",chatData);
-
   const displayName =
     chatData?.contactName ||
     chatData?.phoneNo ||
@@ -41,47 +39,53 @@ const Chat_header = () => {
     chatData?.email ||
     "U")[0].toUpperCase();
 
-    console.log("📦 chatData in Chat_header", chatData);
-
   return (
-    <div className="h-[10vh] border-b-2 border-[#2f303b] flex items-center justify-between px-20">
-      <div className="flex gap-5 items-center w-full justify-between">
+    <div className="h-[10vh] border-b border-gray-300 bg-gray-100 flex items-center justify-between px-6 md:px-20">
+      <div className="flex items-center justify-between w-full">
+        {/* Left: Avatar & Name */}
         <div
-          className="flex gap-3 items-center justify-center"
+          className="flex items-center gap-3 cursor-pointer"
           onClick={() => {
             if (chatType && chatData) setShowProfile(true);
           }}
         >
           <div className="w-12 h-12 relative">
             {chatType === "contact" ? (
-              <Avatar className="h-10 w-10 rounded-full overflow-hidden border-1 border-white">
+              <Avatar className="h-10 w-10 rounded-full overflow-hidden border-2 border-purple-500">
                 {chatData?.image ? (
                   <AvatarImage
                     src={`${HOST}/${chatData.image}`}
                     alt="profile-photo"
-                    className="object-cover h-full w-full bg-black"
+                    className="object-cover h-full w-full bg-gray-100"
                   />
                 ) : (
                   <div
                     className={`uppercase h-full w-full text-lg flex items-center justify-center ${getColor(
                       chatData?.color
-                    )} rounded-full`}
+                    )} text-white rounded-full`}
                   >
                     {avatarLetter}
                   </div>
                 )}
               </Avatar>
             ) : (
-              <div className="bg-[#ffffff22] h-10 w-10 flex items-center justify-center rounded-full">
+              <div className="bg-purple-100 text-purple-600 h-10 w-10 flex items-center justify-center rounded-full text-xl font-semibold">
                 #
               </div>
             )}
           </div>
-          <div>{chatType === "group" ? chatData?.name : displayName}</div>
+          <div className="text-gray-800 font-medium text-base">
+            {chatType === "group" ? chatData?.name : displayName}
+          </div>
         </div>
-        <div className="flex items-center justify-center gap-5">
-          <button className="text-neutral-500 focus:outline-none focus:border-none focus:text-white duration-300 transition-all">
-            <RiCloseFill className="text-3xl" onClick={closeChat} />
+
+        {/* Right: Close Button */}
+        <div>
+          <button
+            className="text-gray-400 hover:text-black transition-colors duration-200"
+            onClick={closeChat}
+          >
+            <RiCloseFill className="text-3xl" />
           </button>
         </div>
       </div>

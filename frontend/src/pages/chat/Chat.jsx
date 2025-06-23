@@ -7,6 +7,7 @@ import Contacts_container from "./components/contacts_container/Contacts_contain
 import Empty_chat_container from "./components/empty_chats_container/Empty_chat_container";
 import Chat_container from "./components/chat_container/Chat_container";
 import { useMessages } from "@/context/MessagesContext";
+import ErrorBoundary from "@/utils/errorBoundry";
 
 const Chat = () => {
   const { userInfo } = useAppStore();
@@ -42,7 +43,10 @@ const Chat = () => {
           {fileDownloadProgress}%
         </div>
       )}
+      <ErrorBoundary>
+
       <Contacts_container />
+      </ErrorBoundary>
       {chatType === undefined ? <Empty_chat_container /> : <Chat_container />}
     </div>
   );

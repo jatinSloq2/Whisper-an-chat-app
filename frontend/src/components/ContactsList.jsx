@@ -3,72 +3,82 @@ import { useMessages } from "@/context/MessagesContext";
 import { Avatar, AvatarImage } from "./ui/avatar";
 import { HOST } from "@/utils/constant";
 import { getColor } from "@/lib/utils";
+import moment from "moment";
 
-const ContactsList = ({ contacts, isGroup = false }) => {
+const ContactsList = ({ contacts }) => {
   const { chatData, setChatType, setChatData, setMessages } = useMessages();
 
   const handleClick = (contact) => {
-    if (isGroup) {
-      setChatType("group");
-    } else {
-      setChatType("contact");
-    }
+    setChatType(contact.isGroup ? "group" : "contact");
 
     if (!chatData || chatData._id !== contact._id) {
       setChatData(contact);
       setMessages([]);
     }
   };
+
   return (
-    <div className="mt-5">
+    <div className="">
       {contacts.map((contact, index) => {
-        console.log("chatData", chatData);
         const isActive = chatData && chatData._id === contact._id;
-        console.log(contact);
+
         const displayName =
           contact.contactName ||
-          chatData?.contactName ||
           contact.phoneNo ||
           contact.email ||
+          contact.name ||
           "Unknown";
 
-        const avatarLetter = (contact.contactName ||
-          chatData?.contactName ||
-          chatData?.email ||
-          "U")[0].toUpperCase();
+        const avatarLetter = displayName[0]?.toUpperCase() || "U";
+
         return (
           <div
             key={index}
             onClick={() => handleClick(contact)}
-            className={`pl-10 transition-all duration-300 cursor-pointer ${
-              isActive ? "bg-[#8417ff]" : "hover:bg-[#f1f1f111]"
+            className={`cursor-pointer flex items-center gap-4 px-4 py-3 transition-all duration-200 border-b-1 border-gray-300 ${
+              isActive
+                ? "bg-purple-500 text-white shadow-sm"
+                : "text-purple-600"
             }`}
           >
-            <div className="flex gap-5 items-center justify-start text-neutral-300 py-3">
-              {!isGroup ? (
-                <Avatar className="h-10 w-10 rounded-full overflow-hidden border border-white">
-                  {contact.image || chatData?.image ? (
-                    <AvatarImage
-                      src={`${HOST}/${contact.image || chatData.image}`}
-                      alt="profile-photo"
-                      className="object-cover h-full w-full bg-black"
-                    />
-                  ) : (
-                    <div
-                      className={`uppercase h-full w-full text-lg flex items-center justify-center rounded-full ${getColor(
-                        contact.color
-                      )}`}
-                    >
-                      {avatarLetter}
-                    </div>
-                  )}
-                </Avatar>
-              ) : (
-                <div className="bg-[#ffffff22] h-10 w-10 flex items-center justify-center rounded-full">
-                  #
-                </div>
-              )}
-              <span>{isGroup ? contact.name : displayName}</span>
+            {/* Avatar */}
+            {contact.isGroup ? (
+              <div className="h-10 w-10 flex items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-semibold text-base shadow-sm">
+                #
+              </div>
+            ) : (
+              <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-sm">
+                {contact.image ? (
+                  <AvatarImage
+                    src={`${HOST}/${contact.image}`}
+                    alt="profile"
+                    className="object-cover h-full w-full"
+                  />
+                ) : (
+                  <div
+                    className={`uppercase h-full w-full flex items-center justify-center text-base ${getColor(
+                      contact.color
+                    )}`}
+                  >
+                    {avatarLetter}
+                  </div>
+                )}
+              </Avatar>
+            )}
+
+            {/* Info */}
+            <div className="flex-1 overflow-hidden">
+              <p className="truncate font-medium text-sm">{displayName}</p>
+              <p className="text-xs text-black truncate group-hover:text-black">
+                {contact.lastMessage || "Tap to chat"}
+              </p>
+            </div>
+
+            {/* Time */}
+            <div className="text-[11px] text-black font-mono">
+              {contact.lastMessageTime
+                ? moment(contact.lastMessageTime).format("hh:mm A")
+                : ""}
             </div>
           </div>
         );

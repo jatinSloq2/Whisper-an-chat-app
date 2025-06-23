@@ -126,3 +126,18 @@
   font-weight: 500;
   font-style: normal;
 }
+
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+::selection {
+  background-color: #a855f7;
+  color: #fff; 
+}
+
+::-moz-selection {
+  background-color: #a855f7;
+  color: #fff;
+}
