@@ -28,7 +28,6 @@ const setupSocket = (server) => {
   };
 
   const sendMessage = async (message) => {
-    console.log("📥 Incoming message:", message);
     try {
       const senderSocketId = userSocketMap.get(message.sender);
       const recipientSocketId = userSocketMap.get(message.recipient);
@@ -43,14 +42,10 @@ const setupSocket = (server) => {
         owner: new mongoose.Types.ObjectId(message.recipient),
         linkedUser: new mongoose.Types.ObjectId(message.sender),
       });
-      console.log("Looking for contact where owner:", message.recipient, "and linkedUser:", message.sender);
 
       if (customContact) {
         messageData.recipient.contactName = customContact.contactName;
-      } else {
-        console.log("❌ No contact found for recipient:", message.recipient, "and sender:", message.sender);
       }
-      console.log(messageData)
       if (recipientSocketId) {
         io.to(recipientSocketId).emit("receiveMessage", messageData);
       }
@@ -64,7 +59,6 @@ const setupSocket = (server) => {
 
   const sendGroupMessage = async (message) => {
     const { groupId, sender, content, messageType, fileUrl } = message;
-
     const createdMessage = await Message.create({
       sender,
       recipient: null,
@@ -73,7 +67,6 @@ const setupSocket = (server) => {
       timestamp: new Date(),
       fileUrl,
     });
-
     const messageData = await Message.findById(createdMessage._id)
       .populate("sender", "id email firstName lastName image color")
       .exec();
@@ -81,16 +74,11 @@ const setupSocket = (server) => {
     await Group.findByIdAndUpdate(groupId, {
       $push: { messages: createdMessage._id },
     });
-
     const group = await Group.findById(groupId)
       .populate("members", "_id")
       .populate("admins", "_id");
-
-    const finalData = { ...messageData._doc, groupId: group._id };
-    console.log(`📤 Sent group message to group ${groupId}`, finalData);
-
+    const finalData = { ...messageData._doc, groupId: group._id, groupName: group.name, groupImage: group.image };
     const sentTo = new Set();
-
     if (group && group.members) {
       group.members.forEach((member) => {
         const memberSocketId = userSocketMap.get(member._id.toString());

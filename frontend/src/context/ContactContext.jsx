@@ -14,16 +14,16 @@ export const ContactsProvider = ({ children }) => {
   const [groups, setGroups] = useState([]);
 
   const fetchContacts = async () => {
-    console.log("I am clled");
+    console.log("I am called");
     try {
       const res = await apiClient.get(GET_CONTACTS_DMS);
       if (res.data.contacts) {
-        setContacts(res.data.contacts);
+        setContacts((prev) => [...res.data.contacts]); // ✅ fix
       }
-      console.log(res);
+      console.log("📥 Contacts fetched:", res.data.contacts);
     } catch (err) {
       console.error("❌ Failed to fetch contacts:", err);
-      setContacts([]);
+      setContacts([]); // keep this
     }
   };
 
@@ -31,14 +31,14 @@ export const ContactsProvider = ({ children }) => {
     try {
       const res = await apiClient.get(GET_USER_GROUPS);
       if (res.data.groups) {
-        setGroups(res.data.groups);
+        setGroups((prev) => [...res.data.groups]); // ✅ fix
       }
     } catch (err) {
       console.error("❌ Failed to fetch groups:", err);
-      setGroups([]);
+      setGroups([]); // keep this
     }
   };
-  
+
   useEffect(() => {
     if (userInfo) {
       fetchContacts();
@@ -74,7 +74,6 @@ export const ContactsProvider = ({ children }) => {
       }
     });
   };
-
 
   return (
     <ContactsContext.Provider
