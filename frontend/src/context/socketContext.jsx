@@ -21,6 +21,7 @@ export const SocketProvider = ({ children }) => {
     upsertGroupToTop,
     upsertContactToTop,
     groups,
+    contacts,
   } = useContacts();
   const [socketInstance, setSocketInstance] = useState(null);
   const chatDataRef = useRef(chatData);
@@ -79,18 +80,25 @@ export const SocketProvider = ({ children }) => {
             label: "View",
             onClick: () => {
               // Determine the contact object
-              const contactObj =
+              const contactId =
                 typeof message.sender === "object"
-                  ? message.sender
-                  : {
-                      _id: message.sender,
-                      firstName: "Unknown",
-                      email: "",
-                    };
+                  ? message.sender._id
+                  : message.sender;
 
-              // 🟢 Set the current chat
+              // Try to find full contact object
+              const fullContact = contacts.find(
+                (c) => c._id === contactId || c.linkedUser?._id === contactId
+              );
+
+              // Fallback if not found
+              const contactData = fullContact || {
+                _id: contactId,
+                firstName: message.sender?.firstName || "Unknown",
+                email: message.sender?.email || "",
+              };
+
               setChatType("contact");
-              setChatData(contactObj);
+              setChatData(contactData);
 
               console.log("🔓 Chat opened via toast");
             },
@@ -140,6 +148,7 @@ export const SocketProvider = ({ children }) => {
         console.log("📣 Group message received (toast triggered)", message);
 
         const fallbackName = message.groupName || message.name || "A group";
+        const fullGroup = groups.find((g) => g._id === groupId);
 
         // ✅ Always show a toast, fallback if name missing
         toast.success(`📢 New message in ${fallbackName}`, {
@@ -152,10 +161,13 @@ export const SocketProvider = ({ children }) => {
             label: "View",
             onClick: () => {
               setChatType("group");
-              setChatData({
-                _id: groupId,
-                name: fallbackName,
-              });
+              setChatData(
+                fullGroup || {
+                  _id: groupId,
+                  name: fallbackName,
+                  image: message.groupImage || "",
+                }
+              );
               console.log("🔓 Group chat opened via toast");
             },
           },
