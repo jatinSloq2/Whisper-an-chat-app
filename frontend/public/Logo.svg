@@ -1,0 +1,14 @@
+<svg
+              width="36"
+              height="36"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="text-purple-600"
+            >
+              <rect width="24" height="24" rx="6" fill="#8338ec" />
+              <path
+                d="M6 10C6 8.34315 7.34315 7 9 7H15C16.6569 7 18 8.34315 18 10V14C18 15.6569 16.6569 17 15 17H12.4142L10 19.4142V17H9C7.34315 17 6 15.6569 6 14V10Z"
+                fill="white"
+              />
+            </svg>

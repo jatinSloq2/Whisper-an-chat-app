@@ -38,7 +38,6 @@ app.use('/api/forgetpassword', forgetPassRouter)
 app.use('/api/contact', contactRouter);
 app.use('/api/messages', msgRouter);
 app.use('/api/group', groupRouter)
-
 mongoose.connect(MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,

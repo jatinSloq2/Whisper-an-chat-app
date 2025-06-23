@@ -10,6 +10,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const { userInfo, fetchUserInfo } = useAppStore();
 
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -19,7 +20,7 @@ function App() {
       } finally {
         setTimeout(() => {
           setLoading(false);
-        }, 2500);
+        }, 3500);
       }
     };
     load();
