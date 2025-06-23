@@ -7,23 +7,40 @@ import Profile from "./pages/profile/Profile";
 import SplashScreen from "./components/SplashScreen";
 
 function App() {
-  const [loading, setLoading] = useState(true); // Splash screen stays visible until everything is ready
+  const [loading, setLoading] = useState(true);
   const { userInfo, fetchUserInfo } = useAppStore();
 
   useEffect(() => {
     const load = async () => {
       try {
-        await fetchUserInfo(); 
+        await fetchUserInfo();
       } catch (err) {
         console.error("API fetch failed", err);
       } finally {
         setTimeout(() => {
-          setLoading(false); // Show splash for minimum time even if instant
-        }, 2500); // Optional minimum splash duration
+          setLoading(false);
+        }, 2500);
       }
     };
     load();
   }, []);
+  useEffect(() => {
+    if (
+      "Notification" in window &&
+      userInfo?.settings?.desktopNotifications &&
+      Notification.permission === "default"
+    ) {
+      const handle = () => {
+        Notification.requestPermission().then((permission) => {
+          if (permission !== "granted") {
+            console.warn("🚫 Notification permission denied");
+          }
+          window.removeEventListener("click", handle);
+        });
+      };
+      window.addEventListener("click", handle);
+    }
+  }, [userInfo]);
 
   const ProtectedRoute = ({ children }) => {
     const { userInfo } = useAppStore();

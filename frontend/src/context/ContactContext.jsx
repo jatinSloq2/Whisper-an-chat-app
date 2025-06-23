@@ -15,7 +15,6 @@ export const ContactsProvider = ({ children }) => {
   const [groups, setGroups] = useState([]);
 
   const fetchContacts = async () => {
-    console.log("I am called");
     try {
       const res = await apiClient.get(GET_CONTACTS_DMS);
       if (res.data.contacts) {

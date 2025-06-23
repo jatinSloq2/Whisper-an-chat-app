@@ -23,4 +23,12 @@ export const createAuthSlice = (set) => ({
             set({ userInfo: undefined });
         }
     },
+    // updateUserSettings: async (settings) => {
+    //     try {
+    //         const res = await apiClient.patch("/user/settings", settings);
+    //         set({ userInfo: res.data }); // update local store
+    //     } catch (err) {
+    //         console.error("Error updating settings", err);
+    //     }
+    // },
 });

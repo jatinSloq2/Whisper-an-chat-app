@@ -12,9 +12,6 @@ const Contacts_container = () => {
     ...c,
     isGroup: Array.isArray(c.members),
   }));
-
-  console.log(contacts)
-
   return (
     <div
       className={`relative w-full md:w-[35vw] xl:w-[25vw] bg-gray-100 border-r-1 border-gray-300`}

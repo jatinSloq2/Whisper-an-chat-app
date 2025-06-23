@@ -7,7 +7,6 @@ import moment from "moment";
 
 const ContactsList = ({ contacts }) => {
   const { chatData, setChatType, setChatData, setMessages } = useMessages();
-
   const handleClick = (contact) => {
     setChatType(contact.isGroup ? "group" : "contact");
 

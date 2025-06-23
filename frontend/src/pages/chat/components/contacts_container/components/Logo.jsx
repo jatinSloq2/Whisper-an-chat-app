@@ -19,6 +19,8 @@ import {
   MessageSquare,
   Search,
   User,
+  UserPlus,
+  UserPlus2Icon,
   Users,
   X,
 } from "lucide-react";
@@ -236,7 +238,7 @@ const Logo = ({ unifiedContacts }) => {
                   <NewContact
                     trigger={
                       <div className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition">
-                        <MessageSquare className="w-4 h-4 text-[#8338ec]" />
+                        <UserPlus2Icon className="w-4 h-4 text-[#8338ec]" />
                         <span>Add contact</span>
                       </div>
                     }

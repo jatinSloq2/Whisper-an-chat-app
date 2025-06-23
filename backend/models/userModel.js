@@ -27,8 +27,8 @@ const userSchema = new Schema({
     },
     image: {
         type: String,
-        required: false ,
-        default : "uploads/profiles/profile-picture.png"
+        required: false,
+        default: "uploads/profiles/profile-picture.png"
     },
     color: {
         type: Number,
@@ -37,6 +37,27 @@ const userSchema = new Schema({
     profileSetup: {
         type: Boolean,
         default: false
+    },
+    settings: {
+        type: Object,
+        default: {
+            sound: true,
+            desktopNotifications: true,
+            theme: "light", // or "dark"
+        },
+    }, about: {
+        type: String,
+        maxlength: 100,
+        default: "Hey I am using Whisper",
+    }, blockedUsers: [
+        {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+        }
+    ],
+    language: {
+        type: String,
+        default: "en",
     },
 }, {
     timestamps: true

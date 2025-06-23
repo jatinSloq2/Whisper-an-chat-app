@@ -179,7 +179,8 @@ export const getUserInfo = async (req, res) => {
                 lastName: user.lastName || "",
                 image: user.image || "",
                 profileSetup: user.profileSetup || false,
-                color: user.color || ""
+                color: user.color || "",
+                settings: user.settings
 
             }
         });

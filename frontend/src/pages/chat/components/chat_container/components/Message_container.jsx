@@ -101,7 +101,6 @@ const Message_container = () => {
 
   const renderDmMessages = (message) => {
     const isSender = message.sender === userInfo.id;
-    console.log(message);
     return (
       <div
         className={`flex ${isSender ? "justify-end" : "justify-start"} mb-2`}
@@ -156,7 +155,6 @@ const Message_container = () => {
   };
 
   const renderGroupMessages = (message) => {
-    console.log("messages fomr group", message);
     const isSender = message.sender._id === userInfo.id;
     const sender = message.sender;
     return (
