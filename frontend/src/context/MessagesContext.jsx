@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from "react";
 import { apiClient } from "@/lib/api-client";
 import { GET_ALL_MSG_GROUP, GET_MSG } from "@/utils/constant";
+import { toast } from "sonner";
 
 const MessagesContext = createContext();
 
@@ -24,6 +25,7 @@ export const MessagesProvider = ({ children }) => {
     } catch (err) {
       console.error("Failed to fetch messages:", err);
       setMessages([]);
+      toast.error("Failed to fetch message please tyr again later")
     }
   };
 
@@ -39,6 +41,7 @@ export const MessagesProvider = ({ children }) => {
     } catch (error) {
       console.error("Failed to fetch messages:", error);
       setMessages([]);
+      toast.error("Failed to fetch message please tyr again later")
     }
   };
 

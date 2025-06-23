@@ -4,6 +4,7 @@ import { apiClient } from "@/lib/api-client";
 import { GET_CONTACTS_DMS, GET_USER_GROUPS } from "@/utils/constant";
 import { useAppStore } from "@/store";
 import { useMessages } from "./MessagesContext";
+import { toast } from "sonner";
 
 const ContactsContext = createContext();
 
@@ -18,12 +19,12 @@ export const ContactsProvider = ({ children }) => {
     try {
       const res = await apiClient.get(GET_CONTACTS_DMS);
       if (res.data.contacts) {
-        setContacts((prev) => [...res.data.contacts]); // ✅ fix
+        setContacts((prev) => [...res.data.contacts]);
       }
-      console.log("📥 Contacts fetched:", res.data.contacts);
     } catch (err) {
       console.error("❌ Failed to fetch contacts:", err);
-      setContacts([]); // keep this
+      setContacts([]);
+      toast.error("Failed to load contacts. Please try again.");
     }
   };
 
@@ -31,11 +32,12 @@ export const ContactsProvider = ({ children }) => {
     try {
       const res = await apiClient.get(GET_USER_GROUPS);
       if (res.data.groups) {
-        setGroups((prev) => [...res.data.groups]); // ✅ fix
+        setGroups((prev) => [...res.data.groups]);
       }
     } catch (err) {
       console.error("❌ Failed to fetch groups:", err);
-      setGroups([]); // keep this
+      setGroups([]);
+      toast.error("Failed to load groups. Please try again.");
     }
   };
 
