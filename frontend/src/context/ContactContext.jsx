@@ -1,91 +1,77 @@
-// context/ContactsContext.jsx
-import React, { createContext, useContext, useEffect, useState } from "react";
 import { apiClient } from "@/lib/api-client";
-import { GET_CONTACTS_DMS, GET_USER_GROUPS } from "@/utils/constant";
 import { useAppStore } from "@/store";
-import { useMessages } from "./MessagesContext";
+import { GET_CONTACTS_DMS, GET_USER_GROUPS } from "@/utils/constant";
+import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const ContactsContext = createContext();
 
 export const ContactsProvider = ({ children }) => {
   const { userInfo } = useAppStore();
-  const { messages } = useMessages();
-  const [contacts, setContacts] = useState([]);
-  const [groups, setGroups] = useState([]);
+  const [chatList, setChatList] = useState([]);
 
-  const fetchContacts = async () => {
+  const fetchChatList = async () => {
     try {
-      const res = await apiClient.get(GET_CONTACTS_DMS);
-      if (res.data.contacts) {
-        setContacts((prev) => [...res.data.contacts]);
-      }
-    } catch (err) {
-      console.error("❌ Failed to fetch contacts:", err);
-      setContacts([]);
-      toast.error("Failed to load contacts. Please try again.");
-    }
-  };
+      const [contactsRes, groupsRes] = await Promise.all([
+        apiClient.get(GET_CONTACTS_DMS),
+        apiClient.get(GET_USER_GROUPS),
+      ]);
 
-  const fetchGroups = async () => {
-    try {
-      const res = await apiClient.get(GET_USER_GROUPS);
-      if (res.data.groups) {
-        setGroups((prev) => [...res.data.groups]);
-      }
+      const contacts =
+        contactsRes?.data?.contacts?.map((c) => ({
+          ...c,
+          type: "contact",
+        })) || [];
+
+      const groups =
+        groupsRes?.data?.groups?.map((g) => ({
+          ...g,
+          type: "group",
+        })) || [];
+
+      setChatList([...contacts, ...groups]);
     } catch (err) {
-      console.error("❌ Failed to fetch groups:", err);
-      setGroups([]);
-      toast.error("Failed to load groups. Please try again.");
+      console.error("❌ Failed to fetch chats:", err);
+      setChatList([]);
+      toast.error("Failed to load chat list. Please try again.");
     }
   };
 
   useEffect(() => {
     if (userInfo) {
-      fetchContacts();
-      fetchGroups();
+      fetchChatList();
     }
-  }, [messages, userInfo]);
+  }, [userInfo]);
 
-  const upsertContactToTop = (contact) => {
-    console.log("💡 Upserting contact:", contact);
-    setContacts((prevContacts) => {
-      const index = prevContacts.findIndex((c) => c._id === contact._id);
+  const upsertChatToTop = (chatItem) => {
+    setChatList((prevList) => {
+      const index = prevList.findIndex(
+        (c) => c._id === chatItem._id && c.type === chatItem.type
+      );
 
+      let newList;
       if (index > -1) {
-        const updated = [...prevContacts];
-        const mergedContact = { ...updated[index], ...contact };
+        const updated = [...prevList];
+        const mergedItem = { ...updated[index], ...chatItem };
         updated.splice(index, 1);
-        return [mergedContact, ...updated];
+        newList = [mergedItem, ...updated];
       } else {
-        return [contact, ...prevContacts];
+        newList = [chatItem, ...prevList];
       }
-    });
-  };
-
-  const upsertGroupToTop = (group) => {
-    setGroups((prevGroups) => {
-      const index = prevGroups.findIndex((c) => c._id === group._id);
-      if (index > -1) {
-        const updated = [...prevGroups];
-        const [existing] = updated.splice(index, 1);
-        return [existing, ...updated];
-      } else {
-        return [group, ...prevGroups];
-      }
+      return newList.sort((a, b) => {
+        const timeA = new Date(a.lastMessageTime || a.updatedAt || 0).getTime();
+        const timeB = new Date(b.lastMessageTime || b.updatedAt || 0).getTime();
+        return timeB - timeA;
+      });
     });
   };
 
   return (
     <ContactsContext.Provider
       value={{
-        contacts,
-        groups,
-        setGroups,
-        upsertGroupToTop,
-        upsertContactToTop,
-        fetchContacts,
-        fetchGroups,
+        upsertChatToTop,
+        fetchChatList,
+        chatList,
       }}
     >
       {children}

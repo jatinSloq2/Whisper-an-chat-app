@@ -48,6 +48,7 @@ export const getUserGroups = async (request, response) => {
           path: "sender",
           select: "firstName lastName email image color",
         },
+
       })
       .sort({ updatedAt: -1 });
 
@@ -56,16 +57,17 @@ export const getUserGroups = async (request, response) => {
       const lastMessage = lastMessageObj?.content || null;
       const lastMessageTime = lastMessageObj?.createdAt || null;
 
-          return {
+      return {
         _id: group._id,
         name: group.name,
-        image: group.image, 
+        image: group.image,
         members: group.members,
         admins: group.admins,
         lastMessage,
         lastMessageTime,
         updatedAt: group.updatedAt,
         createdAt: group.createdAt,
+        type: "group"
       };
     });
     return response.status(200).json({ groups: groupsWithLastMsg });

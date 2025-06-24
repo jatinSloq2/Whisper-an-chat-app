@@ -20,7 +20,7 @@ import { useContacts } from "@/context/ContactContext";
 import { toast } from "sonner";
 
 const NewChannel = ({ trigger }) => {
-  const {fetchGroups } = useContacts();
+  const {fetchChatList } = useContacts();
   const [open, setOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [allContacts, setAllContacts] = useState([]);
@@ -28,7 +28,7 @@ const NewChannel = ({ trigger }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchContacts = async () => {
+    const fetchContactForAdding = async () => {
       try {
         const res = await apiClient.get(GET_ALL_CONTACTS);
         if (res.status === 200) {
@@ -42,7 +42,7 @@ const NewChannel = ({ trigger }) => {
         toast.error("Failed to load contacts.");
       }
     };
-    fetchContacts();
+    fetchContactForAdding();
   }, []);
 
   const handleCreateGroup = async () => {
@@ -64,7 +64,8 @@ const NewChannel = ({ trigger }) => {
         setSelectedContacts([]);
         setOpen(false);
       }
-      fetchGroups()
+      // fetchGroups()
+      fetchChatList()
     } catch (error) {
       console.error("Error creating group:", error);
       toast.error("Failed to create group.");

@@ -14,7 +14,7 @@ const Message_bar = () => {
   const fileInputRef = useRef();
   const socket = useSocket();
   const { userInfo } = useAppStore();
-  const { chatType, chatData , fetchContacts, fetchGroups } = useMessages();
+  const { chatType, chatData } = useMessages();
   const [message, setMessage] = useState("");
   const [showEmojiPickerOpen, setShowEmojiPickerOpen] = useState(false);
 
@@ -59,9 +59,6 @@ const Message_bar = () => {
       });
     }
     setMessage("");
-    fetchContacts()
-    fetchGroups()
-
   };
 
   const handleAttachmentClick = () => {
@@ -103,20 +100,22 @@ const Message_bar = () => {
   };
 
   return (
-    <div className="h-[10vh] bg-gray-100 flex justify-center items-center px-8 mb-6 gap-6">
-      <div className="flex-1 flex bg-neutral-300 rounded-md items-center gap-5 pr-5">
+    <div className="h-auto px-4 py-3 md:px-8 md:py-0 bg-gray-100 flex flex-wrap md:flex-nowrap justify-center items-center gap-4 md:gap-6 mb-6">
+      <div className="flex-1 flex bg-neutral-300 rounded-md items-center gap-2 md:gap-5 pr-2 md:pr-5">
         <input
           type="text"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          className="flex-1 p-5 bg-transparent rounded-md focus:outline-none placeholder:text-black"
-          placeholder="Type your message here..."
+          className="flex-1 p-3 md:p-5 bg-transparent rounded-md focus:outline-none placeholder:text-black text-sm md:text-base"
+          placeholder="Type your message..."
         />
+
+        {/* Attachment button */}
         <button
           className="text-neutral-500 hover:text-white transition-all"
           onClick={handleAttachmentClick}
         >
-          <GrAttachment className="text-2xl" />
+          <GrAttachment className="text-xl md:text-2xl" />
         </button>
         <input
           type="file"
@@ -124,15 +123,17 @@ const Message_bar = () => {
           ref={fileInputRef}
           onChange={handleAttachmentChange}
         />
+
+        {/* Emoji button */}
         <div className="relative">
           <button
             className="text-neutral-500 hover:text-white transition-all"
             onClick={() => setShowEmojiPickerOpen(!showEmojiPickerOpen)}
           >
-            <RiEmojiStickerLine className="text-2xl" />
+            <RiEmojiStickerLine className="text-xl md:text-2xl" />
           </button>
           {showEmojiPickerOpen && (
-            <div className="absolute bottom-16 right-0" ref={emojiRef}>
+            <div className="absolute bottom-16 right-0 z-50" ref={emojiRef}>
               <EmojiPicker
                 theme="dark"
                 onEmojiClick={handleAddEmoji}
@@ -142,11 +143,13 @@ const Message_bar = () => {
           )}
         </div>
       </div>
+
+      {/* Send button */}
       <button
-        className="bg-purple-500 rounded-md flex items-center justify-center p-5 hover:bg-purple-700 transition-all"
+        className="bg-purple-500 rounded-md p-3 md:p-5 flex items-center justify-center hover:bg-purple-700 transition-all"
         onClick={handleSendMessage}
       >
-        <IoSend className="text-2xl text-white" />
+        <IoSend className="text-white text-xl md:text-2xl" />
       </button>
     </div>
   );

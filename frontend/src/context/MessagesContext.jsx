@@ -86,5 +86,4 @@ export const MessagesProvider = ({ children }) => {
   );
 };
 
-// Access messages context anywhere
 export const useMessages = () => useContext(MessagesContext);

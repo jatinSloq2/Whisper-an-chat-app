@@ -1,29 +1,29 @@
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import React, { useState } from "react";
-import { Input } from "@/components/ui/input";
-import Lottie from "react-lottie";
-import { animationDefaultOptions } from "@/lib/utils";
-import { apiClient } from "@/lib/api-client";
-import { HOST, SEARCH_CONTACTS } from "@/utils/constant";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarImage } from "@/components/ui/avatar";
-import { useMessages } from "@/context/MessagesContext";
-import { MessageSquare } from "lucide-react";
 import { useContacts } from "@/context/ContactContext";
+import { useMessages } from "@/context/MessagesContext";
+import { apiClient } from "@/lib/api-client";
+import { animationDefaultOptions } from "@/lib/utils";
+import { HOST, SEARCH_CONTACTS } from "@/utils/constant";
+import { MessageSquare } from "lucide-react";
+import { useState } from "react";
+import Lottie from "react-lottie";
 
 const NewDm = () => {
-  const { fetchContacts } = useContacts();
+  const { fetchChatList } = useContacts();
   const { setChatType, setChatData, setMessages } = useMessages();
   const [openNewContactModal, setOpenNewContactModal] = useState(false);
   const [searchedContacts, setsearchedContacts] = useState([]);
@@ -68,7 +68,7 @@ const NewDm = () => {
     setMessages([]);
     setsearchedContacts([]);
     setOpenNewContactModal(false);
-    fetchContacts();
+    fetchChatList()
   };
   return (
     <>

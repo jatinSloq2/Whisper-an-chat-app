@@ -122,8 +122,12 @@ export const getContactsDmList = async (req, res) => {
       {
         $sort: { lastMessageTime: -1 },
       },
+      {
+        $addFields: {
+          type: "contact"
+        }
+      }
     ]);
-console.log("Contacts", contacts)
     return res.status(200).json({ contacts });
   } catch (error) {
     console.log(error);

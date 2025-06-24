@@ -1,11 +1,11 @@
+import { useContacts } from "@/context/ContactContext";
+import { useMessages } from "@/context/MessagesContext";
 import { useAppStore } from "@/store";
 import { HOST } from "@/utils/constant";
-import { createContext, useEffect, useRef, useContext, useState } from "react";
-import { io } from "socket.io-client";
-import { useMessages } from "@/context/MessagesContext";
-import { useContacts } from "@/context/ContactContext";
-import { toast } from "sonner";
 import { showWebNotification } from "@/utils/notify";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
+import { toast } from "sonner";
 
 const SocketContext = createContext(null);
 
@@ -17,12 +17,12 @@ export const SocketProvider = ({ children }) => {
   const { addMessage, chatType, chatData, setChatType, setChatData } =
     useMessages();
   const {
-    fetchContacts,
-    fetchGroups,
+    fetchChatList,
     upsertGroupToTop,
     upsertContactToTop,
     groups,
     contacts,
+    upsertChatToTop,
   } = useContacts();
   const [socketInstance, setSocketInstance] = useState(null);
   const chatDataRef = useRef(chatData);
@@ -129,17 +129,18 @@ export const SocketProvider = ({ children }) => {
       const contact =
         userInfo.id === senderId ? message.recipient : message.sender;
       const contactId = typeof contact === "object" ? contact._id : contact;
-      upsertContactToTop({
+      upsertChatToTop({
         _id: contactId,
         lastMessage: message.content,
         updatedAt: new Date(),
         unread: !isChatOpen,
+        type: "contact",
       });
       const shouldRefetch =
         !socketRef.current.contactsCache ||
         !socketRef.current.contactsCache.includes(contactId);
       if (shouldRefetch) {
-        fetchContacts().then(() => {
+        fetchChatList().then(() => {
           socketRef.current.contactsCache = [
             ...(socketRef.current.contactsCache || []),
             contactId,
@@ -198,14 +199,14 @@ export const SocketProvider = ({ children }) => {
           enabled: userInfo?.settings?.desktopNotifications === true,
         });
       }
-
-      upsertGroupToTop({
+      upsertChatToTop({
         _id: groupId,
         lastMessage: message.content,
         updatedAt: new Date(),
+        unread: true,
+        type: "group",
       });
-
-      fetchGroups();
+      fetchChatList();
     });
 
     return () => {

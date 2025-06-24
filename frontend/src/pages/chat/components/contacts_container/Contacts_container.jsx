@@ -3,8 +3,12 @@ import { useContacts } from "@/context/ContactContext";
 import Logo from "./components/Logo";
 
 const Contacts_container = () => {
-  const { contacts, groups } = useContacts();
-  const unifiedContacts = [...contacts, ...groups].map((c) => ({
+  const { contacts, groups , chatList} = useContacts();
+  // const unifiedContacts = [...contacts, ...groups].map((c) => ({
+  //   ...c,
+  //   isGroup: Array.isArray(c.members),
+  // }));
+  const unifiedContacts = [...chatList].map((c) => ({
     ...c,
     isGroup: Array.isArray(c.members),
   }));
