@@ -1,14 +1,15 @@
-import React from "react";
 import { useMessages } from "@/context/MessagesContext";
-import { Avatar, AvatarImage } from "./ui/avatar";
-import { HOST } from "@/utils/constant";
-import { getColor } from "@/lib/utils";
-import moment from "moment";
 import { useSettings } from "@/context/SettingContext";
+import { getColor } from "@/lib/utils";
+import NewDm from "@/pages/chat/components/contacts_container/components/NewDm";
+import { HOST } from "@/utils/constant";
+import moment from "moment";
+import { Avatar, AvatarImage } from "./ui/avatar";
 
 const ContactsList = ({ contacts }) => {
-  const { chatData, setChatType, setChatData, setMessages } = useMessages();
-  const {setIsSettingsOpen} = useSettings()
+  const { chatData, setChatType, setChatData, setMessages, chatType } =
+    useMessages();
+  const { setIsSettingsOpen, isSettingsOpen } = useSettings();
   const handleClick = (contact) => {
     setChatType(contact.isGroup ? "group" : "contact");
 
@@ -16,8 +17,7 @@ const ContactsList = ({ contacts }) => {
       setChatData(contact);
       setMessages([]);
     }
-    setIsSettingsOpen(false)
-
+    setIsSettingsOpen(false);
   };
 
   return (
@@ -79,6 +79,15 @@ const ContactsList = ({ contacts }) => {
           </div>
         );
       })}
+      {!chatType && (
+        <div
+          className={`absolute bottom-10 right-5 flex-col gap-4 z-50
+      ${isSettingsOpen ? "hidden md:flex" : "flex"}
+    `}
+        >
+          <NewDm />
+        </div>
+      )}
     </div>
   );
 };

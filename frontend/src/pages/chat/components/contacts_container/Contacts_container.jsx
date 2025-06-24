@@ -1,13 +1,9 @@
-import React from "react";
-import NewDm from "./components/NewDm";
 import ContactsList from "@/components/ContactsList";
 import { useContacts } from "@/context/ContactContext";
 import Logo from "./components/Logo";
-import { useMessages } from "@/context/MessagesContext";
 
 const Contacts_container = () => {
   const { contacts, groups } = useContacts();
-  const {chatType} = useMessages()
   const unifiedContacts = [...contacts, ...groups].map((c) => ({
     ...c,
     isGroup: Array.isArray(c.members),
@@ -25,9 +21,6 @@ const Contacts_container = () => {
         <div className="max-h-[76vh] overflow-y-auto scrollbar-hidden">
           <ContactsList contacts={unifiedContacts} />
         </div>
-      </div>
-      <div className="absolute bottom-10 right-5 flex flex-col gap-4 z-50">
-        {!chatType && <NewDm />}
       </div>
     </div>
   );
