@@ -3,14 +3,20 @@ import { HOST } from "@/utils/constant";
 import React from "react";
 import { RiCloseFill } from "react-icons/ri";
 import { useMessages } from "@/context/MessagesContext";
+import { useSocket } from "@/context/socketContext";
+import { useAppStore } from "@/store";
+import { BsTelephone, BsCameraVideo } from "react-icons/bs";
+import { useCall } from "@/context/CallContext";
 
 const Chat_header = () => {
+  const { startCall } = useCall()
+  
   const {
     chatData,
     chatType,
     setChatData,
-    setChatType,
     setMessages,
+    setChatType,
     setIsUploading,
     setIsDownloading,
     setFileUploadProgress,
@@ -18,6 +24,9 @@ const Chat_header = () => {
     setShowProfile,
   } = useMessages();
 
+  const socket = useSocket();
+  const { userInfo } = useAppStore();
+  
   const closeChat = () => {
     setMessages([]);
     setChatType(undefined);
@@ -27,13 +36,21 @@ const Chat_header = () => {
     setFileUploadProgress(0);
     setFileDownloadProgress(0);
   };
-
+  
   const displayName =
-    chatData?.contactName ||
-    chatData?.phoneNo ||
-    chatData?.contactEmail ||
-    "Unnamed";
-
+  chatData?.contactName ||
+  chatData?.phoneNo ||
+  chatData?.contactEmail ||
+  "Unnamed";
+  
+  const initiateCall = (type = "video") => {
+    if (!chatData || !chatData._id) return;
+    console.log("📞 Initiating call to", chatData._id, "as", type);
+    startCall(chatData._id, type); 
+  };
+  
+  
+  
   return (
     <div className="h-[10vh] border-b border-gray-300 bg-gray-100 flex items-center justify-between px-6 md:px-20">
       <div className="flex items-center justify-between w-full">
@@ -56,14 +73,36 @@ const Chat_header = () => {
             {chatType === "group" ? chatData?.name : displayName}
           </div>
         </div>
-        <div>
+        {/* <div>
           <button
             className="text-gray-400 hover:text-black transition-colors duration-200"
             onClick={closeChat}
           >
             <RiCloseFill className="text-3xl" />
           </button>
-        </div>
+        </div> */}
+        <div className="flex items-center gap-4">
+  <button
+    className="text-gray-500 hover:text-green-600 transition"
+    onClick={() => initiateCall("audio")}
+    title="Voice Call"
+  >
+    <BsTelephone className="text-xl" />
+  </button>
+  <button
+    className="text-gray-500 hover:text-blue-600 transition"
+    onClick={() => initiateCall("video")}
+    title="Video Call"
+  >
+    <BsCameraVideo className="text-xl" />
+  </button>
+  <button
+    className="text-gray-400 hover:text-black transition-colors duration-200"
+    onClick={closeChat}
+  >
+    <RiCloseFill className="text-3xl" />
+  </button>
+</div>
       </div>
     </div>
   );

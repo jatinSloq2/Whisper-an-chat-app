@@ -7,6 +7,7 @@ import { SocketProvider } from "./context/socketContext";
 import { ContactsProvider } from "./context/ContactContext";
 import { MessagesProvider } from "./context/MessagesContext";
 import { SettingsProvider } from "./context/SettingContext";
+import { CallProvider } from "./context/CallContext";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -14,8 +15,10 @@ createRoot(document.getElementById("root")).render(
       <ContactsProvider>
         <SettingsProvider>
           <SocketProvider>
-            <App />
-            <Toaster />
+            <CallProvider>
+              <App />
+              <Toaster />
+            </CallProvider>
           </SocketProvider>
         </SettingsProvider>
       </ContactsProvider>

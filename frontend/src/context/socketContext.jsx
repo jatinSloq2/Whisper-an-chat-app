@@ -20,8 +20,7 @@ export const SocketProvider = ({ children }) => {
     fetchChatList,
     upsertGroupToTop,
     upsertContactToTop,
-    groups,
-    contacts,
+    chatList,
     upsertChatToTop,
   } = useContacts();
   const [socketInstance, setSocketInstance] = useState(null);
@@ -81,7 +80,7 @@ export const SocketProvider = ({ children }) => {
                 typeof message.sender === "object"
                   ? message.sender._id
                   : message.sender;
-              const fullContact = contacts.find(
+              const fullContact = chatList.find(
                 (c) => c._id === contactId || c.linkedUser?._id === contactId
               );
               const contactData = fullContact || {
@@ -110,7 +109,7 @@ export const SocketProvider = ({ children }) => {
                 ? message.sender._id
                 : message.sender;
 
-            const fullContact = contacts.find(
+            const fullContact = chatList.find(
               (c) => c._id === contactId || c.linkedUser?._id === contactId
             );
 
@@ -157,7 +156,7 @@ export const SocketProvider = ({ children }) => {
         addMessageRef.current(message);
       } else {
         const fallbackName = message.groupName || message.name || "A group";
-        const fullGroup = groups.find((g) => g._id === groupId);
+        const fullGroup = chatList.find((g) => g._id === groupId);
         toast.success(`📢 New message in ${fallbackName}`, {
           description:
             message.content.length > 50

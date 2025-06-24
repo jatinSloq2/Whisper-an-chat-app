@@ -65,14 +65,9 @@ export const verifyAndSignup = async (req, res) => {
         emailOTP = emailOTP.trim().toString();
         phoneOTP = phoneOTP.trim().toString();
 
-        console.log("🔐 Received OTP verification request for:", email);
-        console.log("📨 Email OTP:", emailOTP);
-        console.log("📱 Phone OTP:", phoneOTP);
-
         const entry = otpStore[email];
 
         if (!entry) {
-            console.warn("❌ No OTP entry found or request expired for:", email);
             return res.status(400).json({ message: "Signup request not found or expired" });
         }
 
@@ -82,19 +77,11 @@ export const verifyAndSignup = async (req, res) => {
             return res.status(400).json({ message: "OTP expired" });
         }
 
-        console.log("📊 Stored OTPs:", {
-            emailOTP: entry.emailOTP,
-            phoneOTP: entry.phoneOTP,
-        });
-
-        console.log("🧪 Comparing OTPs → Email match:", entry.emailOTP === emailOTP, "| Phone match:", entry.phoneOTP === phoneOTP);
-
         if (entry.emailOTP.toString() !== emailOTP || entry.phoneOTP.toString() !== phoneOTP) {
             console.warn("❌ Invalid OTPs provided");
             return res.status(400).json({ message: "Invalid OTPs provided" });
         }
 
-        // Create new user
         const newUser = User.create({ email, phoneNo: entry.phoneNo, password: entry.password, });
         delete otpStore[email];
 
