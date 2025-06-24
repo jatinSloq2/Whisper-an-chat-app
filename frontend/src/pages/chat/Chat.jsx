@@ -7,7 +7,9 @@ import Contacts_container from "./components/contacts_container/Contacts_contain
 import Empty_chat_container from "./components/empty_chats_container/Empty_chat_container";
 import Chat_container from "./components/chat_container/Chat_container";
 import { useMessages } from "@/context/MessagesContext";
+import { useSettings } from "@/context/SettingContext";
 import ErrorBoundary from "@/utils/errorBoundry";
+import Settings_container from "./components/Settings/Settings_container";
 
 const Chat = () => {
   const { userInfo } = useAppStore();
@@ -18,6 +20,9 @@ const Chat = () => {
     fileUploadProgress,
     fileDownloadProgress,
   } = useMessages();
+
+  const { isSettingsOpen } = useSettings();
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,10 +49,15 @@ const Chat = () => {
         </div>
       )}
       <ErrorBoundary>
-
-      <Contacts_container />
+        <Contacts_container />
       </ErrorBoundary>
-      {chatType === undefined ? <Empty_chat_container /> : <Chat_container />}
+      {isSettingsOpen ? (
+        <Settings_container />
+      ) : chatType === undefined ? (
+        <Empty_chat_container />
+      ) : (
+        <Chat_container />
+      )}
     </div>
   );
 };

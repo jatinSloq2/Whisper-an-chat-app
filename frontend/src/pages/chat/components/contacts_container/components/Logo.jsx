@@ -1,4 +1,3 @@
-import { BsThreeDotsVertical } from "react-icons/bs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,37 +6,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNavigate } from "react-router-dom";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useMessages } from "@/context/MessagesContext";
+import { useSettings } from "@/context/SettingContext";
+import { apiClient } from "@/lib/api-client";
+import { HOST, LOGOUT_ROUTES } from "@/utils/constant";
 import {
-  GroupIcon,
-  LogOut,
-  MessageSquare,
   Search,
-  User,
-  UserPlus,
+  Settings,
   UserPlus2Icon,
   Users,
-  X,
+  X
 } from "lucide-react";
 import { useState } from "react";
-import NewDm from "./NewDm";
-import NewContact from "./NewContact";
-import NewChannel from "./NewChannel";
+import { BsThreeDotsVertical } from "react-icons/bs";
 import { RiProfileLine } from "react-icons/ri";
-import { HOST, LOGOUT_ROUTES } from "@/utils/constant";
-import { useMessages } from "@/context/MessagesContext";
-import { apiClient } from "@/lib/api-client";
+import { useNavigate } from "react-router-dom";
+import NewChannel from "./NewChannel";
+import NewContact from "./NewContact";
 
 const Logo = ({ unifiedContacts }) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const { chatData, setChatType, setChatData, setMessages } = useMessages();
+  const { setIsSettingsOpen } = useSettings();
 
   const handleClick = (contact) => {
     setChatType(contact.isGroup ? "group" : "contact");
@@ -229,9 +226,6 @@ const Logo = ({ unifiedContacts }) => {
                         <span>Profile</span>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="left">
-                      <p>Profile</p>
-                    </TooltipContent>
                   </Tooltip>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -259,16 +253,17 @@ const Logo = ({ unifiedContacts }) => {
                   <Tooltip delayDuration={400}>
                     <TooltipTrigger asChild>
                       <div
-                        onClick={() => logout()}
+                        onClick={() => {
+                          setIsSettingsOpen(true);
+                          setChatData(undefined);
+                          setChatType(undefined)
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition"
                       >
-                        <LogOut className="w-4 h-4 text-[#8338ec]" />
-                        <span>Log-out</span>
+                        <Settings className="w-4 h-4 text-[#8338ec]" />
+                        <span>Setting</span>
                       </div>
                     </TooltipTrigger>
-                    <TooltipContent side="left">
-                      <p>Log-out</p>
-                    </TooltipContent>
                   </Tooltip>
                 </DropdownMenuItem>
               </DropdownMenuContent>

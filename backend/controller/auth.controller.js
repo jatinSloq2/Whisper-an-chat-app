@@ -180,7 +180,8 @@ export const getUserInfo = async (req, res) => {
                 image: user.image || "",
                 profileSetup: user.profileSetup || false,
                 color: user.color || "",
-                settings: user.settings
+                settings: user.settings,
+                language : user.language
 
             }
         });
@@ -268,7 +269,78 @@ export const logout = (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
+export const updateSettings = async (req, res) => {
+    const userId = req.userId;
+    const { settings, language } = req.body;
 
+    if (!settings || typeof settings !== "object") {
+        return res.status(400).json({ success: false, message: "Invalid settings data." });
+    }
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
+
+        const original = {
+            sound: user.settings?.sound,
+            desktopNotifications: user.settings?.desktopNotifications,
+            theme: user.settings?.theme,
+            language: user.language,
+        };
+
+        let isChanged = false;
+
+        // Detect and update changed settings
+        if (settings.sound !== undefined && settings.sound !== original.sound) {
+            user.settings.sound = settings.sound;
+            isChanged = true;
+        }
+
+        if (
+            settings.desktopNotifications !== undefined &&
+            settings.desktopNotifications !== original.desktopNotifications
+        ) {
+            user.settings.desktopNotifications = settings.desktopNotifications;
+            isChanged = true;
+        }
+
+        if (settings.theme && settings.theme !== original.theme) {
+            user.settings.theme = settings.theme;
+            isChanged = true;
+        }
+
+        if (language && language !== original.language) {
+            user.language = language;
+            isChanged = true;
+        }
+
+        if (!isChanged) {
+            return res.status(200).json({
+                success: true,
+                message: "No changes made to settings.",
+                updatedSettings: {
+                    settings: user.settings,
+                    language: user.language,
+                },
+            });
+        }
+        user.markModified("settings");
+        await user.save();
+        return res.status(200).json({
+            success: true,
+            message: "Settings updated successfully.",
+            updatedSettings: {
+                settings: user.settings,
+                language: user.language,
+            },
+        });
+    } catch (error) {
+        console.error("🔥 Error updating settings:", error);
+        return res.status(500).json({ success: false, message: "Internal server error." });
+    }
+};
 
 
 

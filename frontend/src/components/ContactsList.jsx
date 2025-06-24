@@ -4,9 +4,11 @@ import { Avatar, AvatarImage } from "./ui/avatar";
 import { HOST } from "@/utils/constant";
 import { getColor } from "@/lib/utils";
 import moment from "moment";
+import { useSettings } from "@/context/SettingContext";
 
 const ContactsList = ({ contacts }) => {
   const { chatData, setChatType, setChatData, setMessages } = useMessages();
+  const {setIsSettingsOpen} = useSettings()
   const handleClick = (contact) => {
     setChatType(contact.isGroup ? "group" : "contact");
 
@@ -14,6 +16,8 @@ const ContactsList = ({ contacts }) => {
       setChatData(contact);
       setMessages([]);
     }
+    setIsSettingsOpen(false)
+
   };
 
   return (
