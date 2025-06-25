@@ -43,7 +43,6 @@ export const CallProvider = ({ children }) => {
     const audioTracks = stream.getAudioTracks();
     if (audioTracks.length === 0) {
       toast.error("No audio input detected.");
-      console.warn("⚠️ No audio tracks found in stream.");
     } else {
       debug("🎧 Audio settings:", audioTracks[0].getSettings());
     }
@@ -248,16 +247,6 @@ export const CallProvider = ({ children }) => {
         return;
       }
       setIncomingCall({ from, offer, type });
-      debug("⏳ Incoming call timeout started");
-
-      const timeout = setTimeout(() => {
-        toast.error("User did not answer the call in time.");
-        endCall();
-      }, 45000);
-
-      const clear = () => clearTimeout(timeout);
-      socket.once("call-answered", clear);
-      socket.once("call-ended", clear);
     });
 
     socket.on("call-answered", async ({ answer }) => {
