@@ -1,10 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
 import { useCall } from "@/context/CallContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { MdOutlineCallEnd } from "react-icons/md";
 
 const OngoingCallUI = () => {
-  const { inCall, endCall, localStream, remoteStream, callType, callAccepted } =
-    useCall();
+  const {
+    inCall,
+    endCall,
+    localStream,
+    remoteStreamState,
+    callType,
+    callAccepted,
+  } = useCall();
 
   const localRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -13,7 +20,7 @@ const OngoingCallUI = () => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [duration, setDuration] = useState("00:00");
 
-  // Reset when call ends
+  // Reset on call end
   useEffect(() => {
     if (!inCall) {
       setCallStartTime(null);
@@ -38,25 +45,26 @@ const OngoingCallUI = () => {
     }
   }, [localStream]);
 
-  // Bind remote stream
+  // Bind remote stream (from state)
   useEffect(() => {
-    if (remoteStream?.current) {
-      console.log("🎬 Binding remote stream:", remoteStream.current);
+    if (remoteStreamState) {
+      console.log("🎬 Binding remote stream:", remoteStreamState);
 
       if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream.current;
+        remoteVideoRef.current.srcObject = remoteStreamState;
         remoteVideoRef.current
           .play()
           .catch((e) => console.warn("Remote video autoplay blocked:", e));
       }
+
       if (remoteAudioRef.current) {
-        remoteAudioRef.current.srcObject = remoteStream.current;
+        remoteAudioRef.current.srcObject = remoteStreamState;
         remoteAudioRef.current
           .play()
           .catch((e) => console.warn("Remote audio autoplay blocked:", e));
       }
     }
-  }, [remoteStream]);
+  }, [remoteStreamState]);
 
   // Call duration updater
   useEffect(() => {
@@ -136,7 +144,7 @@ const OngoingCallUI = () => {
           className="mt-6 w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 shadow-lg flex items-center justify-center text-2xl transition"
           aria-label="End Call"
         >
-          📴
+          <MdOutlineCallEnd />
         </button>
       </motion.div>
     </AnimatePresence>

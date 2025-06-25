@@ -19,43 +19,33 @@ export const CallProvider = ({ children }) => {
   const [incomingCall, setIncomingCall] = useState(null);
   const [inCall, setInCall] = useState(false);
   const [peerId, setPeerId] = useState(null);
-
   const [localAudio, setLocalAudio] = useState(null);
   const [remoteAudio, setRemoteAudio] = useState(null);
   const [callType, setCallType] = useState(null);
   const [callAccepted, setCallAccepted] = useState(false);
+  const [remoteStreamState, setRemoteStreamState] = useState(null);
 
   const localStream = useRef(null);
   const remoteStream = useRef(null);
   const peerConnection = useRef(null);
   const callActive = useRef(false);
+  const iceQueue = useRef([]);
+
+  const debug = (...args) =>
+    console.log("%c[Call Debug]", "color: cyan", ...args);
 
   const getIceServers = async () => {
-  try {
-    const {data} = await apiClient.get("https://whisper-backend-kcj2.onrender.com/api/call/ice");
-     console.log("🚀 Full ICE server response:", data); 
-    return data.iceServers;
-  } catch (err) {
-    console.error("❌ Failed to fetch ICE servers:", err);
-    return [
-      { urls: "stun:stun.l.google.com:19302" }
-    ];
-  }
-};
-
-
-// const iceServers = await getIceServers();
-
-  // const iceServers = {
-  //   iceServers: [
-  //     { urls: "stun:stun.l.google.com:19302" },
-  //     {
-  //       urls: "turn:openrelay.metered.ca:80",
-  //       username: "openrelayproject",
-  //       credential: "openrelayproject",
-  //     },
-  //   ],
-  // };
+    try {
+      const { data } = await apiClient.get(
+        "https://whisper-backend-kcj2.onrender.com/api/call/ice"
+      );
+      debug("Fetched ICE servers", data);
+      return data.iceServers;
+    } catch (err) {
+      console.error("❌ ICE server fetch failed:", err);
+      return [{ urls: "stun:stun.l.google.com:19302" }];
+    }
+  };
 
   const getSafeUserMedia = async (constraints) => {
     try {
@@ -74,54 +64,70 @@ export const CallProvider = ({ children }) => {
         return null;
       }
 
-      console.log("🎙️ Media stream acquired:", stream);
+      debug("Media stream acquired:", stream);
       return stream;
     } catch (err) {
-      console.error("❌ getUserMedia error:", err);
-      if (
-        err.name === "NotAllowedError" ||
-        err.name === "PermissionDeniedError"
-      ) {
-        toast.error("Permission denied. Please allow microphone access.");
-      } else {
-        toast.error("Error accessing media: " + err.message);
-      }
+      console.error("🎙️ getUserMedia error:", err);
+      toast.error(
+        err.name === "NotAllowedError"
+          ? "Permission denied. Please allow microphone access."
+          : "Error accessing media: " + err.message
+      );
       return null;
     }
   };
 
-  // const initPeerConnection = (toUserId) => {
-  //   console.log("📡 Initializing PeerConnection...");
-  //   peerConnection.current = new RTCPeerConnection(iceServers);
-  const initPeerConnection = (toUserId, iceServers) => {
-  console.log("📡 Initializing PeerConnection...");
-  peerConnection.current = new RTCPeerConnection({ iceServers , iceTransportPolicy: "relay",  });
+  const awaitIceGatheringComplete = (pc) =>
+    new Promise((resolve) => {
+      if (pc.iceGatheringState === "complete") return resolve();
+      const listener = () => {
+        if (pc.iceGatheringState === "complete") {
+          pc.removeEventListener("icegatheringstatechange", listener);
+          resolve();
+        }
+      };
+      pc.addEventListener("icegatheringstatechange", listener);
+    });
 
-    peerConnection.current.onicecandidate = (event) => {
-      if (event.candidate) {
+  const initPeerConnection = (toUserId, iceServers) => {
+    if (peerConnection.current) {
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+
+    debug("Initializing peer connection...");
+    const pc = new RTCPeerConnection({ iceServers, iceTransportPolicy: "relay" });
+    peerConnection.current = pc;
+
+    remoteStream.current = new MediaStream();
+    setRemoteAudio(remoteStream.current);
+    setRemoteStreamState(remoteStream.current);
+
+    pc.onicecandidate = ({ candidate }) => {
+      if (candidate) {
         socket.emit("ice-candidate", {
           to: toUserId,
-          candidate: event.candidate,
+          candidate,
         });
+        debug("Sent ICE candidate:", candidate);
       }
     };
 
-    peerConnection.current.ontrack = (event) => {
-      if (!remoteStream.current) {
-        remoteStream.current = new MediaStream();
-        setRemoteAudio(remoteStream.current);
-      }
-      remoteStream.current.addTrack(event.track);
+    pc.ontrack = (e) => {
+      debug("Received remote track");
+      e.streams[0].getTracks().forEach((track) => {
+        remoteStream.current.addTrack(track);
+      });
+      setRemoteStreamState(new MediaStream([...remoteStream.current.getTracks()]));
     };
 
-    peerConnection.current.oniceconnectionstatechange = () =>
-      console.log("ICE State:", peerConnection.current.iceConnectionState);
+    pc.oniceconnectionstatechange = () => {
+      debug("ICE Connection:", pc.iceConnectionState);
+    };
 
-    peerConnection.current.onconnectionstatechange = () =>
-      console.log("Connection State:", peerConnection.current.connectionState);
-    peerConnection.current.onicegatheringstatechange = () => {
-  console.log("ICE Gathering State:", peerConnection.current.iceGatheringState);
-};
+    pc.onconnectionstatechange = () => {
+      debug("Peer Connection:", pc.connectionState);
+    };
   };
 
   const startCall = async (toUserId, type = "audio") => {
@@ -129,13 +135,12 @@ export const CallProvider = ({ children }) => {
       video: type === "video",
       audio: true,
     });
-
-    if (!stream) {
-      toast.error("Audio permission is required to start the call.");
-      return;
-    }
+    if (!stream) return toast.error("Audio permission is required to call.");
 
     try {
+      const iceServers = await getIceServers();
+      initPeerConnection(toUserId, iceServers);
+
       setCallType(type);
       localStream.current = stream;
       setLocalAudio(stream);
@@ -143,63 +148,42 @@ export const CallProvider = ({ children }) => {
       callActive.current = true;
       setInCall(true);
 
-      const localVideoEl = document.getElementById("local-video");
-      if (localVideoEl) localVideoEl.srcObject = stream;
-
-      const iceServers = await getIceServers();
-initPeerConnection(toUserId, iceServers);
-console.log("✅ Using ICE servers:", iceServers);
-      // initPeerConnection(toUserId);
       stream
         .getTracks()
         .forEach((track) => peerConnection.current.addTrack(track, stream));
 
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
+      await awaitIceGatheringComplete(peerConnection.current);
 
       socket.emit("call-user", {
         from: userInfo.id,
         to: toUserId,
         type,
-        offer,
+        offer: peerConnection.current.localDescription,
       });
 
-      console.log(
-        "✅ LocalDescription:",
-        peerConnection.current.localDescription
-      );
-      console.log(
-        "✅ RemoteDescription:",
-        peerConnection.current.remoteDescription
-      );
-      console.log(
-        "ICE Connection State:",
-        peerConnection.current.iceConnectionState
-      );
+      debug("Call offer sent");
     } catch (err) {
-      console.error("❌ startCall error:", err);
-      toast.error("Failed to start the call.");
+      console.error("❌ startCall failed:", err);
+      toast.error("Could not start the call.");
       endCall();
     }
   };
 
   const answerCall = async ({ from, offer, type }) => {
-    if (!offer?.type || !offer?.sdp) {
-      toast.error("Invalid call offer received.");
-      return;
-    }
+    if (!offer?.sdp || !offer?.type) return toast.error("Invalid call offer.");
 
     const stream = await getSafeUserMedia({
       video: type === "video",
       audio: true,
     });
-
-    if (!stream) {
-      toast.error("Audio permission is required to answer the call.");
-      return;
-    }
+    if (!stream) return;
 
     try {
+      const iceServers = await getIceServers();
+      initPeerConnection(from, iceServers);
+
       setCallType(type);
       localStream.current = stream;
       setLocalAudio(stream);
@@ -207,12 +191,6 @@ console.log("✅ Using ICE servers:", iceServers);
       callActive.current = true;
       setInCall(true);
 
-      const localVideoEl = document.getElementById("local-video");
-      if (localVideoEl) localVideoEl.srcObject = stream;
-      const iceServers = await getIceServers();
-initPeerConnection(from, iceServers);
-console.log("✅ Using ICE servers:", iceServers);
-      // initPeerConnection(from);
       stream
         .getTracks()
         .forEach((track) => peerConnection.current.addTrack(track, stream));
@@ -223,6 +201,7 @@ console.log("✅ Using ICE servers:", iceServers);
 
       const answer = await peerConnection.current.createAnswer();
       await peerConnection.current.setLocalDescription(answer);
+      await awaitIceGatheringComplete(peerConnection.current);
 
       socket.emit("answer-call", {
         to: from,
@@ -230,20 +209,9 @@ console.log("✅ Using ICE servers:", iceServers);
       });
 
       setCallAccepted(true);
-      console.log(
-        "✅ LocalDescription:",
-        peerConnection.current.localDescription
-      );
-      console.log(
-        "✅ RemoteDescription:",
-        peerConnection.current.remoteDescription
-      );
-      console.log(
-        "ICE Connection State:",
-        peerConnection.current.iceConnectionState
-      );
+      debug("Answered call");
     } catch (err) {
-      console.error("❌ answerCall error:", err);
+      console.error("❌ answerCall failed:", err);
       toast.error("Failed to answer the call.");
       endCall();
     }
@@ -257,20 +225,22 @@ console.log("✅ Using ICE servers:", iceServers);
     try {
       peerConnection.current?.close();
     } catch (err) {
-      console.warn("⚠️ Error closing peerConnection:", err);
+      console.warn("⚠️ Error closing connection:", err);
     }
 
     peerConnection.current = null;
+    localStream.current?.getTracks().forEach((t) => t.stop());
+    remoteStream.current?.getTracks().forEach((t) => t.stop());
 
-    localStream.current?.getTracks().forEach((track) => track.stop());
     localStream.current = null;
-    setLocalAudio(null);
-
     remoteStream.current = null;
-    setRemoteAudio(null);
 
+    setLocalAudio(null);
+    setRemoteAudio(null);
     setInCall(false);
     setIncomingCall(null);
+    setPeerId(null);
+    setCallAccepted(false);
 
     if (socket && userInfo?.id) {
       socket.emit("end-call", {
@@ -279,8 +249,7 @@ console.log("✅ Using ICE servers:", iceServers);
       });
     }
 
-    setPeerId(null);
-    setCallAccepted(false);
+    debug("Call ended");
   };
 
   useEffect(() => {
@@ -289,32 +258,37 @@ console.log("✅ Using ICE servers:", iceServers);
     socket.on("incoming-call", ({ from, offer, type }) => {
       if (offer?.type && offer?.sdp) {
         setIncomingCall({ from, offer, type });
+        debug("Incoming call from", from);
       }
     });
 
     socket.on("call-answered", async ({ answer }) => {
       try {
-        if (answer?.type && answer?.sdp && peerConnection.current) {
+        if (answer?.sdp && peerConnection.current) {
           await peerConnection.current.setRemoteDescription(
             new RTCSessionDescription(answer)
           );
+          setCallAccepted(true);
+          debug("Call answered");
         }
-        setCallAccepted(true);
       } catch (err) {
         console.error("❌ Error applying remote answer:", err);
       }
     });
 
-    socket.on("ice-candidate", ({ candidate }) => {
-      if (candidate && peerConnection.current) {
-        console.log("✅ Received ICE candidate:", candidate);
-        try {
-          peerConnection.current.addIceCandidate(
+    socket.on("ice-candidate", async ({ candidate }) => {
+      try {
+        if (peerConnection.current?.remoteDescription) {
+          await peerConnection.current.addIceCandidate(
             new RTCIceCandidate(candidate)
           );
-        } catch (err) {
-          console.warn("⚠️ Failed to add ICE candidate:", err);
+          debug("Added ICE candidate");
+        } else {
+          iceQueue.current.push(candidate);
+          debug("Queued ICE candidate");
         }
+      } catch (err) {
+        console.warn("⚠️ Failed to add ICE candidate:", err);
       }
     });
 
@@ -344,6 +318,7 @@ console.log("✅ Using ICE servers:", iceServers);
         remoteAudio,
         callType,
         callAccepted,
+         remoteStreamState, 
       }}
     >
       {children}
