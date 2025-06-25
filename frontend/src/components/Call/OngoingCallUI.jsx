@@ -1,5 +1,6 @@
 import { useCall } from "@/context/CallContext";
 import { AnimatePresence, motion } from "framer-motion";
+import { SwitchCamera } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   MdOutlineCallEnd,
@@ -17,6 +18,7 @@ const OngoingCallUI = () => {
     remoteStreamState,
     callType,
     callAccepted,
+    replaceVideoTrack,
   } = useCall();
 
   const localRef = useRef(null);
@@ -28,6 +30,7 @@ const OngoingCallUI = () => {
   const [playBlocked, setPlayBlocked] = useState(false);
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
+  const [facingMode, setFacingMode] = useState("user");
 
   const remotePlayedRef = useRef(false);
   const localPlayedRef = useRef(false);
@@ -119,6 +122,34 @@ const OngoingCallUI = () => {
     if (videoTrack) {
       videoTrack.enabled = !videoTrack.enabled;
       setCameraOff(!videoTrack.enabled);
+    }
+  };
+
+  const switchCamera = async () => {
+    try {
+      const videoTrack = localStream?.current?.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.stop(); // Stop current video track
+
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: facingMode === "user" ? "environment" : "user" },
+          audio: false, // only video needed
+        });
+
+        const newVideoTrack = newStream.getVideoTracks()[0];
+
+        // Replace in UI stream
+        localStream.current.removeTrack(videoTrack);
+        localStream.current.addTrack(newVideoTrack);
+        localRef.current.srcObject = localStream.current;
+
+        // Replace in peer connection
+        await replaceVideoTrack(newVideoTrack);
+
+        setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+      }
+    } catch (err) {
+      console.error("Camera switch failed:", err);
     }
   };
 
@@ -221,6 +252,15 @@ const OngoingCallUI = () => {
               ) : (
                 <MdVideocam />
               )}
+            </button>
+          )}
+          {isVideoCall && (
+            <button
+              onClick={switchCamera}
+              className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
+              title="Switch Camera"
+            >
+              <SwitchCamera />
             </button>
           )}
         </div>

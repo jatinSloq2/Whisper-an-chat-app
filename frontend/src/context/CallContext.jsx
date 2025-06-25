@@ -45,6 +45,19 @@ export const CallProvider = ({ children }) => {
   //   }
   // };
 
+  const replaceVideoTrack = async (newTrack) => {
+  try {
+    const senders = peerConnection.current?.getSenders();
+    const videoSender = senders.find((s) => s.track?.kind === "video");
+    if (videoSender) {
+      await videoSender.replaceTrack(newTrack);
+      debug("🔄 Video track replaced in peer connection");
+    }
+  } catch (err) {
+    console.error("❌ Failed to replace video track:", err);
+  }
+};
+
   const getIceServers = async () => {
     return [
       { urls: "stun:stun.l.google.com:19302" },
@@ -61,15 +74,15 @@ export const CallProvider = ({ children }) => {
   };
 
   const validateAudioTracks = (stream) => {
-  const audioTracks = stream.getAudioTracks();
-  if (audioTracks.length === 0) {
-    toast.error("No audio input detected.");
-    console.warn("⚠️ No audio tracks found in stream.");
-  } else {
-    const settings = audioTracks[0].getSettings();
-    debug("🎧 Audio settings:", settings);
-  }
-};
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      toast.error("No audio input detected.");
+      console.warn("⚠️ No audio tracks found in stream.");
+    } else {
+      const settings = audioTracks[0].getSettings();
+      debug("🎧 Audio settings:", settings);
+    }
+  };
 
   const getSafeUserMedia = async (constraints) => {
     const defaultConstraints = {
@@ -84,6 +97,10 @@ export const CallProvider = ({ children }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
         defaultConstraints
+      );
+      console.log(
+        "🎤 Local Tracks:",
+        stream.getTracks().map((t) => t.kind)
       );
       validateAudioTracks(stream);
       debug("Media stream acquired:", stream);
@@ -114,6 +131,14 @@ export const CallProvider = ({ children }) => {
       peerConnection.current.close();
     }
 
+    if (peerConnection.current) {
+      peerConnection.current
+        .getSenders()
+        .forEach((s) => peerConnection.current.removeTrack(s));
+      peerConnection.current.close();
+      peerConnection.current = null;
+    }
+
     const pc = new RTCPeerConnection({
       iceServers,
       iceTransportPolicy: "all",
@@ -137,7 +162,10 @@ export const CallProvider = ({ children }) => {
     };
 
     pc.ontrack = ({ streams }) => {
-      debug("Remote track received");
+      debug(
+        "📥 Remote track received:",
+        streams[0]?.getTracks()?.map((t) => t.kind)
+      );
       streams[0].getTracks().forEach((track) => {
         remoteStream.current.addTrack(track);
       });
@@ -154,15 +182,24 @@ export const CallProvider = ({ children }) => {
         endCall();
       }
     };
+    let negotiationDone = false;
+
     pc.onnegotiationneeded = async () => {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socket.emit("call-user", {
-        from: userInfo.id,
-        to: peerId,
-        type: callType,
-        offer,
-      });
+      if (negotiationDone || !pc) return;
+      negotiationDone = true;
+
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socket.emit("call-user", {
+          from: userInfo.id,
+          to: peerId,
+          type: callType,
+          offer,
+        });
+      } catch (err) {
+        console.error("Negotiation error:", err);
+      }
     };
   };
 
@@ -183,9 +220,15 @@ export const CallProvider = ({ children }) => {
       callActive.current = true;
       setInCall(true);
 
-      stream
-        .getTracks()
-        .forEach((track) => peerConnection.current.addTrack(track, stream));
+      if (type === "video") {
+        stream
+          .getTracks()
+          .forEach((track) => peerConnection.current.addTrack(track, stream));
+      } else {
+        stream
+          .getAudioTracks()
+          .forEach((track) => peerConnection.current.addTrack(track, stream));
+      }
 
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
@@ -221,9 +264,15 @@ export const CallProvider = ({ children }) => {
       callActive.current = true;
       setInCall(true);
 
-      stream
-        .getTracks()
-        .forEach((track) => peerConnection.current.addTrack(track, stream));
+      if (type === "video") {
+        stream
+          .getTracks()
+          .forEach((track) => peerConnection.current.addTrack(track, stream));
+      } else {
+        stream
+          .getAudioTracks()
+          .forEach((track) => peerConnection.current.addTrack(track, stream));
+      }
 
       await peerConnection.current.setRemoteDescription(
         new RTCSessionDescription(offer)
@@ -343,6 +392,7 @@ export const CallProvider = ({ children }) => {
         callType,
         callAccepted,
         remoteStreamState,
+        replaceVideoTrack
       }}
     >
       {children}
