@@ -8,6 +8,7 @@ import React, {
 import { useSocket } from "@/context/socketContext";
 import { useAppStore } from "@/store";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api-client";
 
 const CallContext = createContext();
 
@@ -31,8 +32,8 @@ export const CallProvider = ({ children }) => {
 
   const getIceServers = async () => {
   try {
-    const response = await fetch("https://whisper-backend-kcj2.onrender.com//api/call/ice");
-    const data = await response.json();
+    const {data} = await apiClient.get("https://whisper-backend-kcj2.onrender.com/api/call/ice");
+     console.log("🚀 Full ICE server response:", data); 
     return data.iceServers;
   } catch (err) {
     console.error("❌ Failed to fetch ICE servers:", err);
@@ -94,7 +95,7 @@ export const CallProvider = ({ children }) => {
   //   peerConnection.current = new RTCPeerConnection(iceServers);
   const initPeerConnection = (toUserId, iceServers) => {
   console.log("📡 Initializing PeerConnection...");
-  peerConnection.current = new RTCPeerConnection({ iceServers });
+  peerConnection.current = new RTCPeerConnection({ iceServers , iceTransportPolicy: "relay",  });
 
     peerConnection.current.onicecandidate = (event) => {
       if (event.candidate) {
@@ -118,6 +119,9 @@ export const CallProvider = ({ children }) => {
 
     peerConnection.current.onconnectionstatechange = () =>
       console.log("Connection State:", peerConnection.current.connectionState);
+    peerConnection.current.onicegatheringstatechange = () => {
+  console.log("ICE Gathering State:", peerConnection.current.iceGatheringState);
+};
   };
 
   const startCall = async (toUserId, type = "audio") => {
