@@ -68,28 +68,29 @@ const OngoingCallUI = () => {
   }, [localStream]);
 
   useEffect(() => {
-    if (
-      remoteStreamState &&
-      remoteVideoRef.current &&
-      !remotePlayedRef.current
-    ) {
+    if (!remoteStreamState || remotePlayedRef.current) return;
+
+    if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamState;
-      remoteAudioRef.current.srcObject = remoteStreamState;
-
-      Promise.all([
-        remoteVideoRef.current.play(),
-        remoteAudioRef.current.play(),
-      ])
-        .then(() => {
-          remotePlayedRef.current = true;
-        })
-        .catch((err) => {
-          console.warn("🔇 Remote media autoplay blocked:", err.message);
-          setPlayBlocked(true);
-        });
+      remoteVideoRef.current.play().catch((err) => {
+        console.warn("🔇 Remote video autoplay blocked:", err.message);
+        setPlayBlocked(true);
+      });
     }
-  }, [remoteStreamState]);
 
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = remoteStreamState;
+      remoteAudioRef.current.play().catch((err) => {
+        console.warn("🔇 Remote audio autoplay blocked:", err.message);
+        setPlayBlocked(true);
+      });
+    }
+    console.log("🎧 Attaching remote stream to audio", remoteStreamState);
+    console.log("📹 Remote videoRef:", remoteVideoRef.current);
+    console.log("🔊 Remote audioRef:", remoteAudioRef.current);
+    remotePlayedRef.current = true;
+  }, [remoteStreamState]);
+  console.log(remoteStreamState?.getAudioTracks());
   useEffect(() => {
     if (!callStartTime) return;
 

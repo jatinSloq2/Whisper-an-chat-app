@@ -1,14 +1,13 @@
-import React, {
+import { useSocket } from "@/context/socketContext";
+import { useAppStore } from "@/store";
+import {
   createContext,
   useContext,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { useSocket } from "@/context/socketContext";
-import { useAppStore } from "@/store";
 import { toast } from "sonner";
-import { apiClient } from "@/lib/api-client";
 
 const CallContext = createContext();
 
@@ -29,9 +28,7 @@ export const CallProvider = ({ children }) => {
   const callActive = useRef(false);
   const iceQueue = useRef([]);
 
-  const debug = (...args) =>
-    console.log("%c[Call Debug]", "color: cyan", ...args);
-
+  const debug = (...args) =>console.log("%c[Call Debug]", "color: cyan", ...args);
   // const getIceServers = async () => {
   //   try {
   //     const { data } = await apiClient.get(
