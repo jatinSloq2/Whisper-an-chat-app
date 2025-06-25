@@ -1,4 +1,4 @@
- import React, {
+import React, {
   createContext,
   useContext,
   useEffect,
@@ -33,51 +33,41 @@ export const CallProvider = ({ children }) => {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
   };
 
-  const getSafeUserMedia = async (constraints) => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const hasCamera = devices.some((d) => d.kind === "videoinput");
-      const hasMic = devices.some((d) => d.kind === "audioinput");
-      navigator.mediaDevices.enumerateDevices().then((devices) => {
-        console.log("Available devices:");
-        devices.forEach((device) => {
-          console.log(`${device.kind}: ${device.label}`);
-        });
-      });
-      if (constraints.video && !hasCamera) {
-        toast.error("No camera device found.");
-        return null;
-      }
-      if (constraints.audio && !hasMic) {
-        toast.error("No microphone device found.");
-        return null;
-      }
+ const getSafeUserMedia = async (constraints) => {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const hasMic = devices.some((d) => d.kind === "audioinput");
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      return stream;
-    } catch (err) {
-      console.error("🚫 getUserMedia error:", err);
-      if (err.name === "NotAllowedError") {
-        toast.error("Permissions denied for camera/microphone.");
-      } else if (err.name === "NotFoundError") {
-        toast.error("Required media device not found.");
-      } else if (err.name === "NotReadableError") {
-        toast.error("Camera or microphone is already in use.");
-      } else {
-        toast.error("Failed to access media devices.");
-      }
+    if (!hasMic) {
+      toast.error("No microphone found.");
       return null;
     }
-  };
+
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+    if (!stream || !stream.active) {
+      toast.error("Microphone permission denied or inactive.");
+      return null;
+    }
+
+    console.log("🎙️ Media stream acquired:", stream);
+    return stream;
+  } catch (err) {
+    console.error("❌ getUserMedia error:", err);
+    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+      toast.error("Permission denied. Please allow microphone access.");
+    } else {
+      toast.error("Error accessing media: " + err.message);
+    }
+    return null;
+  }
+};
 
   const initPeerConnection = (toUserId) => {
+    console.log("📡 Initializing PeerConnection...");
     peerConnection.current = new RTCPeerConnection(iceServers);
 
     peerConnection.current.onicecandidate = (event) => {
-      console.log(
-        "ICE connection state:",
-        peerConnection.current.iceConnectionState
-      );
       if (event.candidate) {
         socket.emit("ice-candidate", {
           to: toUserId,
@@ -89,35 +79,26 @@ export const CallProvider = ({ children }) => {
     peerConnection.current.ontrack = (event) => {
       if (!remoteStream.current) {
         remoteStream.current = new MediaStream();
-        setRemoteAudio(remoteStream.current); // audio and video share same stream
+        setRemoteAudio(remoteStream.current);
       }
-
       remoteStream.current.addTrack(event.track);
-
-      // Set remote audio element
-      const remoteAudioEl = document.getElementById("remote-audio");
-      if (remoteAudioEl) remoteAudioEl.srcObject = remoteStream.current;
-
-      // Set remote video element
-      const remoteVideoEl = document.getElementById("remote-video");
-      if (remoteVideoEl) remoteVideoEl.srcObject = remoteStream.current;
-
-      console.log("📥 Track added:", event.track.kind);
     };
+
+    peerConnection.current.oniceconnectionstatechange = () =>
+      console.log("ICE State:", peerConnection.current.iceConnectionState);
+
+    peerConnection.current.onconnectionstatechange = () =>
+      console.log("Connection State:", peerConnection.current.connectionState);
   };
 
-  const startCall = async (toUserId, type = "video") => {
+  const startCall = async (toUserId, type = "audio") => {
     const stream = await getSafeUserMedia({
       video: type === "video",
       audio: true,
     });
-    if (!stream) {
-      toast.error("Video input failed. Switching to audio-only call.");
-      return; // or set fallback to audio-only
-    }
 
     if (!stream) {
-      endCall();
+      toast.error("Audio permission is required to start the call.");
       return;
     }
 
@@ -132,12 +113,10 @@ export const CallProvider = ({ children }) => {
       const localVideoEl = document.getElementById("local-video");
       if (localVideoEl) localVideoEl.srcObject = stream;
 
-      initPeerConnection(toUserId, type);
-      console.log("🎥 Local Media Tracks:");
-      stream.getTracks().forEach((track) => {
-        console.log(`• ${track.kind}`, track);
-        peerConnection.current.addTrack(track, stream);
-      });
+      initPeerConnection(toUserId);
+      stream.getTracks().forEach((track) =>
+        peerConnection.current.addTrack(track, stream)
+      );
 
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
@@ -150,7 +129,7 @@ export const CallProvider = ({ children }) => {
       });
     } catch (err) {
       console.error("❌ startCall error:", err);
-      toast.error("Failed to start call.");
+      toast.error("Failed to start the call.");
       endCall();
     }
   };
@@ -165,13 +144,9 @@ export const CallProvider = ({ children }) => {
       video: type === "video",
       audio: true,
     });
-    if (!stream) {
-      toast.error("Video input failed. Switching to audio-only call.");
-      return; // or set fallback to audio-only
-    }
 
     if (!stream) {
-      endCall();
+      toast.error("Audio permission is required to answer the call.");
       return;
     }
 
@@ -186,12 +161,10 @@ export const CallProvider = ({ children }) => {
       const localVideoEl = document.getElementById("local-video");
       if (localVideoEl) localVideoEl.srcObject = stream;
 
-      initPeerConnection(from, type);
-      console.log("🎥 Local Media Tracks:");
-      stream.getTracks().forEach((track) => {
-        console.log(` ${track.kind}`, track);
-        peerConnection.current.addTrack(track, stream);
-      });
+      initPeerConnection(from);
+      stream.getTracks().forEach((track) =>
+        peerConnection.current.addTrack(track, stream)
+      );
 
       await peerConnection.current.setRemoteDescription(
         new RTCSessionDescription(offer)
@@ -208,7 +181,7 @@ export const CallProvider = ({ children }) => {
       setCallAccepted(true);
     } catch (err) {
       console.error("❌ answerCall error:", err);
-      toast.error("Failed to answer call.");
+      toast.error("Failed to answer the call.");
       endCall();
     }
   };
@@ -266,16 +239,13 @@ export const CallProvider = ({ children }) => {
         setCallAccepted(true);
       } catch (err) {
         console.error("❌ Error applying remote answer:", err);
-        toast.error("Error finalizing call connection.");
       }
     });
 
     socket.on("ice-candidate", ({ candidate }) => {
       if (candidate && peerConnection.current) {
         try {
-          peerConnection.current.addIceCandidate(
-            new RTCIceCandidate(candidate)
-          );
+          peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
         } catch (err) {
           console.warn("⚠️ Failed to add ICE candidate:", err);
         }

@@ -26,7 +26,8 @@ app.set('trust proxy', 1);
 const allowedOrigins = [
     "http://localhost:5173",
     "https://whisper-for-chat.netlify.app",
-    "http://192.168.60.196:5173"
+    "http://192.168.60.196:5173",
+    "https://b79a-2409-40d4-1d-ca38-5980-de8d-2356-5cc2.ngrok-free.app"
 ];
 app.use(cors({
     origin: function (origin, callback) {
