@@ -1,7 +1,13 @@
 import { useCall } from "@/context/CallContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { MdOutlineCallEnd } from "react-icons/md";
+import {
+  MdOutlineCallEnd,
+  MdMicOff,
+  MdMic,
+  MdVideocam,
+  MdVideocamOff,
+} from "react-icons/md";
 
 const OngoingCallUI = () => {
   const {
@@ -19,12 +25,13 @@ const OngoingCallUI = () => {
 
   const [callStartTime, setCallStartTime] = useState(null);
   const [duration, setDuration] = useState("00:00");
+  const [playBlocked, setPlayBlocked] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [cameraOff, setCameraOff] = useState(false);
 
-  const remotePlayedRef = useRef(false); // prevent re-calling play()
+  const remotePlayedRef = useRef(false);
   const localPlayedRef = useRef(false);
-  const [playBlocked, setPlayBlocked] = useState(false); // fallback if autoplay fails
 
-  // Reset on call end
   useEffect(() => {
     if (!inCall) {
       setCallStartTime(null);
@@ -32,17 +39,17 @@ const OngoingCallUI = () => {
       remotePlayedRef.current = false;
       localPlayedRef.current = false;
       setPlayBlocked(false);
+      setMuted(false);
+      setCameraOff(false);
     }
   }, [inCall]);
 
-  // Start timer
   useEffect(() => {
     if (inCall && callAccepted && !callStartTime) {
       setCallStartTime(Date.now());
     }
   }, [inCall, callAccepted, callStartTime]);
 
-  // Bind local stream
   useEffect(() => {
     if (localRef.current && localStream?.current && !localPlayedRef.current) {
       localRef.current.srcObject = localStream.current;
@@ -57,7 +64,6 @@ const OngoingCallUI = () => {
     }
   }, [localStream]);
 
-  // Bind remote stream
   useEffect(() => {
     if (
       remoteStreamState &&
@@ -81,7 +87,6 @@ const OngoingCallUI = () => {
     }
   }, [remoteStreamState]);
 
-  // Duration updater
   useEffect(() => {
     if (!callStartTime) return;
 
@@ -95,9 +100,29 @@ const OngoingCallUI = () => {
     return () => clearInterval(interval);
   }, [callStartTime]);
 
-  if (!inCall) return null;
-
   const isVideoCall = callType === "video";
+
+  const toggleMute = () => {
+    const audioTrack = localStream?.current
+      ?.getAudioTracks()
+      ?.find((t) => t.kind === "audio");
+    if (audioTrack) {
+      audioTrack.enabled = !audioTrack.enabled;
+      setMuted(!audioTrack.enabled);
+    }
+  };
+
+  const toggleCamera = () => {
+    const videoTrack = localStream?.current
+      ?.getVideoTracks()
+      ?.find((t) => t.kind === "video");
+    if (videoTrack) {
+      videoTrack.enabled = !videoTrack.enabled;
+      setCameraOff(!videoTrack.enabled);
+    }
+  };
+
+  if (!inCall) return null;
 
   return (
     <AnimatePresence>
@@ -109,7 +134,6 @@ const OngoingCallUI = () => {
         transition={{ type: "spring", stiffness: 180, damping: 18 }}
         className="fixed inset-0 z-[9999] bg-black/90 text-white flex flex-col items-center justify-center p-6"
       >
-        {/* Call Info */}
         <div className="mb-4 text-center">
           <p className="text-sm text-gray-300">
             {isVideoCall ? "Video Call" : "Audio Call"}
@@ -123,7 +147,7 @@ const OngoingCallUI = () => {
           )}
         </div>
 
-        {/* Media */}
+        {/* Media UI */}
         {isVideoCall ? (
           <div className="relative w-full max-w-xl h-[60vh] rounded-xl overflow-hidden border border-zinc-700 shadow-2xl bg-zinc-900">
             <video
@@ -151,10 +175,9 @@ const OngoingCallUI = () => {
           </div>
         )}
 
-        {/* Remote audio (hidden) */}
         <audio ref={remoteAudioRef} autoPlay hidden />
 
-        {/* Manual play fallback */}
+        {/* Manual resume for autoplay-block */}
         {playBlocked && (
           <button
             className="mt-4 px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-700 text-white"
@@ -168,14 +191,39 @@ const OngoingCallUI = () => {
           </button>
         )}
 
-        {/* End Call Button */}
-        <button
-          onClick={endCall}
-          className="mt-6 w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 shadow-lg flex items-center justify-center text-2xl transition"
-          aria-label="End Call"
-        >
-          <MdOutlineCallEnd />
-        </button>
+        {/* Controls */}
+        <div className="mt-6 flex items-center gap-6">
+          {/* Mic toggle */}
+          <button
+            onClick={toggleMute}
+            className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
+          >
+            {muted ? <MdMicOff className="text-red-500" /> : <MdMic />}
+          </button>
+
+          {/* End call */}
+          <button
+            onClick={endCall}
+            className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 shadow-lg flex items-center justify-center text-2xl transition"
+            aria-label="End Call"
+          >
+            <MdOutlineCallEnd />
+          </button>
+
+          {/* Camera toggle */}
+          {isVideoCall && (
+            <button
+              onClick={toggleCamera}
+              className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
+            >
+              {cameraOff ? (
+                <MdVideocamOff className="text-red-500" />
+              ) : (
+                <MdVideocam />
+              )}
+            </button>
+          )}
+        </div>
       </motion.div>
     </AnimatePresence>
   );

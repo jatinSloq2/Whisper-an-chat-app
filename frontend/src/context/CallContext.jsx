@@ -60,9 +60,32 @@ export const CallProvider = ({ children }) => {
     ];
   };
 
+  const validateAudioTracks = (stream) => {
+  const audioTracks = stream.getAudioTracks();
+  if (audioTracks.length === 0) {
+    toast.error("No audio input detected.");
+    console.warn("⚠️ No audio tracks found in stream.");
+  } else {
+    const settings = audioTracks[0].getSettings();
+    debug("🎧 Audio settings:", settings);
+  }
+};
+
   const getSafeUserMedia = async (constraints) => {
+    const defaultConstraints = {
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: constraints.video || false,
+    };
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      const stream = await navigator.mediaDevices.getUserMedia(
+        defaultConstraints
+      );
+      validateAudioTracks(stream);
       debug("Media stream acquired:", stream);
       return stream;
     } catch (err) {
