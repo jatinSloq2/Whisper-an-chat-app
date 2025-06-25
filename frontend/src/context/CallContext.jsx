@@ -30,45 +30,48 @@ export const CallProvider = ({ children }) => {
   const callActive = useRef(false);
 
   const iceServers = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    {
-      urls: "turn:openrelay.metered.ca:80",
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-  ],
-};
+    iceServers: [
+      { urls: "stun:stun.l.google.com:19302" },
+      {
+        urls: "turn:openrelay.metered.ca:80",
+        username: "openrelayproject",
+        credential: "openrelayproject",
+      },
+    ],
+  };
 
- const getSafeUserMedia = async (constraints) => {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const hasMic = devices.some((d) => d.kind === "audioinput");
+  const getSafeUserMedia = async (constraints) => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasMic = devices.some((d) => d.kind === "audioinput");
 
-    if (!hasMic) {
-      toast.error("No microphone found.");
+      if (!hasMic) {
+        toast.error("No microphone found.");
+        return null;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+      if (!stream || !stream.active) {
+        toast.error("Microphone permission denied or inactive.");
+        return null;
+      }
+
+      console.log("🎙️ Media stream acquired:", stream);
+      return stream;
+    } catch (err) {
+      console.error("❌ getUserMedia error:", err);
+      if (
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
+      ) {
+        toast.error("Permission denied. Please allow microphone access.");
+      } else {
+        toast.error("Error accessing media: " + err.message);
+      }
       return null;
     }
-
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-
-    if (!stream || !stream.active) {
-      toast.error("Microphone permission denied or inactive.");
-      return null;
-    }
-
-    console.log("🎙️ Media stream acquired:", stream);
-    return stream;
-  } catch (err) {
-    console.error("❌ getUserMedia error:", err);
-    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-      toast.error("Permission denied. Please allow microphone access.");
-    } else {
-      toast.error("Error accessing media: " + err.message);
-    }
-    return null;
-  }
-};
+  };
 
   const initPeerConnection = (toUserId) => {
     console.log("📡 Initializing PeerConnection...");
@@ -121,9 +124,9 @@ export const CallProvider = ({ children }) => {
       if (localVideoEl) localVideoEl.srcObject = stream;
 
       initPeerConnection(toUserId);
-      stream.getTracks().forEach((track) =>
-        peerConnection.current.addTrack(track, stream)
-      );
+      stream
+        .getTracks()
+        .forEach((track) => peerConnection.current.addTrack(track, stream));
 
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
@@ -134,6 +137,19 @@ export const CallProvider = ({ children }) => {
         type,
         offer,
       });
+
+      console.log(
+        "✅ LocalDescription:",
+        peerConnection.current.localDescription
+      );
+      console.log(
+        "✅ RemoteDescription:",
+        peerConnection.current.remoteDescription
+      );
+      console.log(
+        "ICE Connection State:",
+        peerConnection.current.iceConnectionState
+      );
     } catch (err) {
       console.error("❌ startCall error:", err);
       toast.error("Failed to start the call.");
@@ -169,9 +185,9 @@ export const CallProvider = ({ children }) => {
       if (localVideoEl) localVideoEl.srcObject = stream;
 
       initPeerConnection(from);
-      stream.getTracks().forEach((track) =>
-        peerConnection.current.addTrack(track, stream)
-      );
+      stream
+        .getTracks()
+        .forEach((track) => peerConnection.current.addTrack(track, stream));
 
       await peerConnection.current.setRemoteDescription(
         new RTCSessionDescription(offer)
@@ -186,6 +202,18 @@ export const CallProvider = ({ children }) => {
       });
 
       setCallAccepted(true);
+      console.log(
+        "✅ LocalDescription:",
+        peerConnection.current.localDescription
+      );
+      console.log(
+        "✅ RemoteDescription:",
+        peerConnection.current.remoteDescription
+      );
+      console.log(
+        "ICE Connection State:",
+        peerConnection.current.iceConnectionState
+      );
     } catch (err) {
       console.error("❌ answerCall error:", err);
       toast.error("Failed to answer the call.");
@@ -250,15 +278,17 @@ export const CallProvider = ({ children }) => {
     });
 
     socket.on("ice-candidate", ({ candidate }) => {
-  if (candidate && peerConnection.current) {
-    console.log("✅ Received ICE candidate:", candidate);
-    try {
-      peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-    } catch (err) {
-      console.warn("⚠️ Failed to add ICE candidate:", err);
-    }
-  }
-});
+      if (candidate && peerConnection.current) {
+        console.log("✅ Received ICE candidate:", candidate);
+        try {
+          peerConnection.current.addIceCandidate(
+            new RTCIceCandidate(candidate)
+          );
+        } catch (err) {
+          console.warn("⚠️ Failed to add ICE candidate:", err);
+        }
+      }
+    });
 
     socket.on("call-ended", () => {
       endCall();

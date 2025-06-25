@@ -3,14 +3,8 @@ import { useCall } from "@/context/CallContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 const OngoingCallUI = () => {
-  const {
-    inCall,
-    endCall,
-    localStream,
-    remoteStream,
-    callType,
-    callAccepted,
-  } = useCall();
+  const { inCall, endCall, localStream, remoteStream, callType, callAccepted } =
+    useCall();
 
   const localRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -47,6 +41,8 @@ const OngoingCallUI = () => {
   // Bind remote stream
   useEffect(() => {
     if (remoteStream?.current) {
+      console.log("🎬 Binding remote stream:", remoteStream.current);
+
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream.current;
         remoteVideoRef.current
