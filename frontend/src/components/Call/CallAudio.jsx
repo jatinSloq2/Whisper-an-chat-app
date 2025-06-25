@@ -7,25 +7,27 @@ const CallAudio = () => {
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
 
-  // Attach local audio stream
+  // Attach local audio (muted to avoid feedback loop)
   useEffect(() => {
-    if (localAudioRef.current && localAudio) {
+    if (localAudioRef.current && localAudio instanceof MediaStream) {
       localAudioRef.current.srcObject = localAudio;
     }
   }, [localAudio]);
 
-  // Attach remote audio stream
+  // Attach remote audio
   useEffect(() => {
-    if (remoteAudioRef.current && remoteAudio) {
+    if (remoteAudioRef.current && remoteAudio instanceof MediaStream) {
       remoteAudioRef.current.srcObject = remoteAudio;
     }
   }, [remoteAudio]);
 
   return (
     <>
-      {/* Hidden audio elements */}
-      <audio ref={localAudioRef} autoPlay muted playsInline />
-      <audio ref={remoteAudioRef} autoPlay playsInline />
+      {/* Hidden local audio (muted to avoid loopback) */}
+      <audio ref={localAudioRef} autoPlay muted playsInline aria-hidden="true" />
+
+      {/* Remote audio (audible) */}
+      <audio ref={remoteAudioRef} autoPlay playsInline aria-label="Remote audio" />
     </>
   );
 };

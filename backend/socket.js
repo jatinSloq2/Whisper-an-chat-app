@@ -16,23 +16,30 @@ const setupSocket = (server) => {
     },
   });
 
+  // 🔁 userId -> Set of socket IDs
   const userSocketMap = new Map();
+
+  // Helper: Emit to all sockets of a user
+  const emitToUser = (userId, event, data) => {
+    const sockets = userSocketMap.get(userId);
+    if (!sockets) return;
+    sockets.forEach((sockId) => {
+      io.to(sockId).emit(event, data);
+    });
+  };
 
   const disconnect = (socket) => {
     console.log(`❌ Client Disconnected: ${socket.id}`);
-    for (const [userId, socketId] of userSocketMap.entries()) {
-      if (socketId === socket.id) {
+    for (const [userId, socketSet] of userSocketMap.entries()) {
+      socketSet.delete(socket.id);
+      if (socketSet.size === 0) {
         userSocketMap.delete(userId);
-        break;
       }
     }
   };
 
   const sendMessage = async (message) => {
     try {
-      const senderSocketId = userSocketMap.get(message.sender);
-      const recipientSocketId = userSocketMap.get(message.recipient);
-
       const createdMessage = await Message.create(message);
       const fullMessage = await Message.findById(createdMessage._id)
         .populate("sender", "id email firstName lastName image color")
@@ -49,12 +56,8 @@ const setupSocket = (server) => {
         messageData.recipient.contactName = customContact.contactName;
       }
 
-      if (recipientSocketId) {
-        io.to(recipientSocketId).emit("receiveMessage", messageData);
-      }
-      if (senderSocketId) {
-        io.to(senderSocketId).emit("receiveMessage", messageData);
-      }
+      emitToUser(message.recipient, "receiveMessage", messageData);
+      emitToUser(message.sender, "receiveMessage", messageData);
     } catch (error) {
       console.error("💥 Error in sendMessage:", error);
     }
@@ -90,16 +93,19 @@ const setupSocket = (server) => {
       groupImage: group.image,
     };
 
-    const sentTo = new Set();
-
     const allUsers = [...group.members, ...group.admins];
+    const sentTo = new Set();
 
     allUsers.forEach((user) => {
       const userId = user._id.toString();
-      const socketId = userSocketMap.get(userId);
-      if (socketId && !sentTo.has(socketId)) {
-        io.to(socketId).emit("receive-group-message", finalData);
-        sentTo.add(socketId);
+      const socketSet = userSocketMap.get(userId);
+      if (socketSet) {
+        socketSet.forEach((sockId) => {
+          if (!sentTo.has(sockId)) {
+            io.to(sockId).emit("receive-group-message", finalData);
+            sentTo.add(sockId);
+          }
+        });
       }
     });
   };
@@ -108,69 +114,59 @@ const setupSocket = (server) => {
     const userId = socket.handshake.query.userId;
 
     if (userId) {
-      userSocketMap.set(userId, socket.id);
+      if (!userSocketMap.has(userId)) {
+        userSocketMap.set(userId, new Set());
+      }
+      userSocketMap.get(userId).add(socket.id);
       console.log(`✅ User connected: ${userId} | Socket ID: ${socket.id}`);
     } else {
       console.warn("⚠️ No userId provided in handshake");
     }
 
+    // 🔁 Message listeners
     socket.on("sendMessage", sendMessage);
     socket.on("send-group-message", sendGroupMessage);
 
-    // 🔔 Call: Sending call request
+    // 📞 Call initiated
     socket.on("call-user", ({ to, offer, type, from }) => {
       console.log("📞 Incoming call attempt from:", from, "to:", to);
-      console.log("📤 Offer details:", offer);
 
       if (!offer || !offer.type || !offer.sdp) {
-        console.error("❌ Invalid offer or recipient not found");
-        console.log("📤 Offer details:", offer);
-      
-      }
-
-      const recipientSocketId = userSocketMap.get(to);
-
-      if (recipientSocketId && offer?.type && offer?.sdp) {
-        io.to(recipientSocketId).emit("incoming-call", { from, offer, type });
-        io.to(socket.id).emit("call-init-sent", { to });
-      } else {
-        console.warn("❌ Invalid offer or recipient not found");
         io.to(socket.id).emit("call-failed", {
           to,
-          reason: "User not online or invalid offer",
+          reason: "Invalid offer",
         });
+        return;
       }
+
+      emitToUser(to, "incoming-call", { from, offer, type });
+      emitToUser(from, "call-init-sent", { to });
     });
 
     // 📲 Call answered
     socket.on("answer-call", ({ to, answer }) => {
-      const callerSocketId = userSocketMap.get(to);
-      if (callerSocketId && answer?.type && answer?.sdp) {
-        io.to(callerSocketId).emit("call-answered", { answer });
-      } else {
-        console.warn("⚠️ Invalid answer or caller not connected");
+      if (!answer?.type || !answer?.sdp) {
+        console.warn("⚠️ Invalid answer received");
+        return;
       }
+      emitToUser(to, "call-answered", { answer });
     });
 
     // 🧊 ICE candidate relay
     socket.on("ice-candidate", ({ to, candidate }) => {
-      const recipientSocketId = userSocketMap.get(to);
-      if (recipientSocketId && candidate) {
-        console.log(`[ICE] Relaying candidate to ${to}`);
-        io.to(recipientSocketId).emit("ice-candidate", { candidate });
+      if (candidate) {
+        emitToUser(to, "ice-candidate", { candidate });
       }
     });
 
-    // 📴 End call
-    socket.on("end-call", ({ to }) => {
-      console.log(`[CALL] End call to ${to}`);
-      const recipientSocketId = userSocketMap.get(to);
-      if (recipientSocketId) {
-        io.to(recipientSocketId).emit("call-ended");
-      }
+    // 📴 End call (propagated to both users)
+    socket.on("end-call", ({ to, from }) => {
+      console.log(`[CALL] End call between ${from} and ${to}`);
+      emitToUser(to, "call-ended");
+      emitToUser(from, "call-ended"); // also notify all of own devices
     });
 
-    // 🔌 Handle disconnect
+    // 🔌 Disconnect
     socket.on("disconnect", () => disconnect(socket));
   });
 };

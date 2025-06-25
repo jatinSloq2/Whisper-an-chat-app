@@ -22,9 +22,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
-
+app.set('trust proxy', 1);
 app.use(cors({
-    origin: process.env.CLIENT_URL,
+    origin: [
+        "http://localhost:5173",
+        "http://192.168.60.196:5173",
+        "https://c8b2-2409-40d4-30d2-af08-7c6a-d5c6-985e-9083.ngrok-free.app",
+        "https://merry-licorice-ef90b0.netlify.app/"
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
 }));

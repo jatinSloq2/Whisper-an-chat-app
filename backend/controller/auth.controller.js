@@ -103,6 +103,7 @@ export const verifyAndSignup = async (req, res) => {
     }
 };
 export const login = async (req, res) => {
+    console.log("first")
     try {
         const { identifier, password } = req.body;
 
@@ -127,10 +128,12 @@ export const login = async (req, res) => {
         res.cookie("jwt", token, {
             httpOnly: true,
             maxAge: maxAge * 1000,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
+            sameSite: "none",
+            secure: true,
         });
-
+        
+        // secure: process.env.NODE_ENV === "production",
+        // sameSite: "strict",
         res.status(200).json({
             message: "Login successful",
             user: {
@@ -168,7 +171,7 @@ export const getUserInfo = async (req, res) => {
                 profileSetup: user.profileSetup || false,
                 color: user.color || "",
                 settings: user.settings,
-                language : user.language
+                language: user.language
 
             }
         });
