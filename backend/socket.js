@@ -7,14 +7,18 @@ import mongoose from "mongoose";
 
 dotenv.config();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://whisper-for-chat.netlify.app",
+];
 const setupSocket = (server) => {
   const io = new SocketIOServer(server, {
     cors: {
       origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
+          console.warn("❌ CORS blocked:", origin);
           callback(new Error("Not allowed by CORS"));
         }
       },

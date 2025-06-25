@@ -23,13 +23,17 @@ const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 app.set('trust proxy', 1);
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://whisper-for-chat.netlify.app",
+];
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error("CORS Not Allowed: " + origin));
+            console.warn("❌ CORS blocked:", origin);
+            callback(new Error("Not allowed by CORS"));
         }
     },
     credentials: true,
