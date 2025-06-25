@@ -8,7 +8,7 @@ import IncomingCallUI from "@/components/Call/IncomingCallModal";
 import OngoingCallUI from "@/components/Call/OngoingCallUI";
 import { useMessages } from "@/context/MessagesContext";
 import { useSettings } from "@/context/SettingContext";
-import ErrorBoundary from "@/utils/errorBoundry";
+import ErrorBoundary from "@/utils/ErrorBoundry";
 import Chat_container from "./components/chat_container/Chat_container";
 import Contacts_container from "./components/contacts_container/Contacts_container";
 import Empty_chat_container from "./components/empty_chats_container/Empty_chat_container";
