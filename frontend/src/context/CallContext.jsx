@@ -30,8 +30,15 @@ export const CallProvider = ({ children }) => {
   const callActive = useRef(false);
 
   const iceServers = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-  };
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+  ],
+};
 
  const getSafeUserMedia = async (constraints) => {
   try {
@@ -243,14 +250,15 @@ export const CallProvider = ({ children }) => {
     });
 
     socket.on("ice-candidate", ({ candidate }) => {
-      if (candidate && peerConnection.current) {
-        try {
-          peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-          console.warn("⚠️ Failed to add ICE candidate:", err);
-        }
-      }
-    });
+  if (candidate && peerConnection.current) {
+    console.log("✅ Received ICE candidate:", candidate);
+    try {
+      peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.warn("⚠️ Failed to add ICE candidate:", err);
+    }
+  }
+});
 
     socket.on("call-ended", () => {
       endCall();
