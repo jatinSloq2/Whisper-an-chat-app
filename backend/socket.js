@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 
 dotenv.config();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 const setupSocket = (server) => {
   const io = new SocketIOServer(server, {
     cors: {

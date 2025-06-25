@@ -23,6 +23,7 @@ const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 app.set('trust proxy', 1);
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
