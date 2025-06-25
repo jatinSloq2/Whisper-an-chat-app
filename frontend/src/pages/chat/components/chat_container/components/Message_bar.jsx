@@ -30,14 +30,11 @@ const Message_bar = () => {
     };
   }, []);
 
-  const handleAddEmoji = (emoji) => {
-    setMessage((msg) => msg + emoji.emoji);
-  };
+  const handleAddEmoji = (emoji) => setMessage((msg) => msg + emoji.emoji);
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
     if (!socket) {
-      console.warn("❌ No socket connection");
       return;
     }
 
@@ -62,9 +59,7 @@ const Message_bar = () => {
   };
 
   const handleAttachmentClick = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    if (fileInputRef.current) fileInputRef.current.click();
   };
 
   const handleAttachmentChange = async (e) => {
@@ -109,8 +104,6 @@ const Message_bar = () => {
           className="flex-1 p-3 md:p-5 bg-transparent rounded-md focus:outline-none placeholder:text-black text-sm md:text-base"
           placeholder="Type your message..."
         />
-
-        {/* Attachment button */}
         <button
           className="text-neutral-500 hover:text-white transition-all"
           onClick={handleAttachmentClick}
@@ -123,8 +116,6 @@ const Message_bar = () => {
           ref={fileInputRef}
           onChange={handleAttachmentChange}
         />
-
-        {/* Emoji button */}
         <div className="relative">
           <button
             className="text-neutral-500 hover:text-white transition-all"
@@ -143,8 +134,6 @@ const Message_bar = () => {
           )}
         </div>
       </div>
-
-      {/* Send button */}
       <button
         className="bg-purple-500 rounded-md p-3 md:p-5 flex items-center justify-center hover:bg-purple-700 transition-all"
         onClick={handleSendMessage}

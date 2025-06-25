@@ -8,9 +8,10 @@ import { ContactsProvider } from "./context/ContactContext";
 import { MessagesProvider } from "./context/MessagesContext";
 import { SettingsProvider } from "./context/SettingContext";
 import { CallProvider } from "./context/CallContext";
+import { UIProvider } from "./context/UIcontext";
 
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
+  <UIProvider>
     <MessagesProvider>
       <ContactsProvider>
         <SettingsProvider>
@@ -23,5 +24,5 @@ createRoot(document.getElementById("root")).render(
         </SettingsProvider>
       </ContactsProvider>
     </MessagesProvider>
-  </StrictMode>
+  </UIProvider>
 );

@@ -16,10 +16,8 @@ import callRouter from './routes/xirsys.js';
 
 dotenv.config()
 
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const app = express();
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
@@ -27,8 +25,6 @@ app.set('trust proxy', 1);
 const allowedOrigins = [
     "http://localhost:5173",
     "https://whisper-for-chat.netlify.app",
-    "http://192.168.60.196:5173",
-    "https://b79a-2409-40d4-1d-ca38-5980-de8d-2356-5cc2.ngrok-free.app"
 ];
 app.use(cors({
     origin: function (origin, callback) {
@@ -46,30 +42,17 @@ app.use(cors({
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());
 app.use(cookieParser());
-app.get("/", (req, res) => {
-    res.send("Hello")
-})
+app.get("/", (req, res) => res.send("Hello"))
 app.use("/api/call", callRouter)
 app.use('/api/auth', authRouter);
 app.use('/api/forgetpassword', forgetPassRouter)
 app.use('/api/contact', contactRouter);
 app.use('/api/messages', msgRouter);
 app.use('/api/group', groupRouter)
-mongoose.connect(MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-    .then(() => {
-        console.log('Connected to MongoDB');
-    })
-    .catch((err) => {
-        console.error('MongoDB connection error:', err);
-    });
 
+mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true, })
+    .then(() => console.log('Connected to MongoDB'))
+    .catch((err) => console.error('MongoDB connection error:', err))
 
-// Start the server
-const server = app.listen(PORT, () => {
-    console.log(`The server is live on http://localhost:${PORT}`);
-});
-
+const server = app.listen(PORT, () => console.log(`The server is live on http://localhost:${PORT}`));
 setupSocket(server)

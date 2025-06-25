@@ -3,14 +3,17 @@ import { useAppStore } from "@/store";
 import { GET_CONTACTS_DMS, GET_USER_GROUPS } from "@/utils/constant";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useUI } from "./UIcontext";
 
 const ContactsContext = createContext();
 
 export const ContactsProvider = ({ children }) => {
   const { userInfo } = useAppStore();
+  const { setIsLoading } = useUI();
   const [chatList, setChatList] = useState([]);
 
   const fetchChatList = async () => {
+    setIsLoading(true);
     try {
       const [contactsRes, groupsRes] = await Promise.all([
         apiClient.get(GET_CONTACTS_DMS),
@@ -31,9 +34,10 @@ export const ContactsProvider = ({ children }) => {
 
       setChatList([...contacts, ...groups]);
     } catch (err) {
-      console.error("❌ Failed to fetch chats:", err);
       setChatList([]);
       toast.error("Failed to load chat list. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 

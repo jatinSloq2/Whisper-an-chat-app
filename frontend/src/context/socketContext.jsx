@@ -8,7 +8,6 @@ import { io } from "socket.io-client";
 import { toast } from "sonner";
 
 const SocketContext = createContext(null);
-
 export const useSocket = () => useContext(SocketContext);
 
 export const SocketProvider = ({ children }) => {
@@ -35,7 +34,6 @@ export const SocketProvider = ({ children }) => {
   }, [chatData, chatType, addMessage]);
   useEffect(() => {
     if (!userInfo) return;
-
     const socket = io(HOST, {
       query: { userId: userInfo.id },
     });
@@ -44,12 +42,11 @@ export const SocketProvider = ({ children }) => {
     setSocketInstance(socket);
 
     socket.on("connect", () => {
-      console.log("✅ Connected to Socket Server");
+      console.log("Connected to Socket Server");
     });
 
     socket.on("receiveMessage", (message) => {
       if (!message) return;
-
       const senderId =
         typeof message.sender === "object"
           ? message.sender._id
@@ -59,7 +56,6 @@ export const SocketProvider = ({ children }) => {
           ? message.recipient._id
           : message.recipient;
       const chatId = chatDataRef.current?._id || chatDataRef.current?.id;
-
       const isChatOpen =
         chatTypeRef.current === "contact" &&
         (chatId === senderId || chatId === recipientId);

@@ -1,14 +1,14 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMessages } from "@/context/MessagesContext";
 import { apiClient } from "@/lib/api-client";
+import { getColor } from "@/lib/utils";
 import { useAppStore } from "@/store";
-import { GET_MSG, HOST } from "@/utils/constant";
+import { HOST } from "@/utils/constant";
 import moment from "moment";
 import React, { useEffect, useRef, useState } from "react";
-import { MdFolderZip } from "react-icons/md";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getColor } from "@/lib/utils";
+import { MdFolderZip } from "react-icons/md";
 import { toast } from "sonner";
 const Message_container = () => {
   const scrollRef = useRef();
@@ -18,7 +18,6 @@ const Message_container = () => {
     chatData,
     messages,
     fetchMessages,
-    fetchGroupMessages,
     setIsDownloading,
     setFileDownloadProgress,
   } = useMessages();
@@ -29,7 +28,7 @@ const Message_container = () => {
     if (chatData?._id && chatType === "contact") {
       fetchMessages(chatData._id, chatType);
     } else if (chatData?._id && chatType === "group") {
-      fetchGroupMessages(chatData._id, chatType);
+      fetchMessages(chatData._id, chatType);
     }
   }, [chatData?._id, chatType]);
 
