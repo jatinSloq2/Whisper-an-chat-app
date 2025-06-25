@@ -74,6 +74,10 @@ export const CallProvider = ({ children }) => {
     peerConnection.current = new RTCPeerConnection(iceServers);
 
     peerConnection.current.onicecandidate = (event) => {
+      console.log(
+        "ICE connection state:",
+        peerConnection.current.iceConnectionState
+      );
       if (event.candidate) {
         socket.emit("ice-candidate", {
           to: toUserId,

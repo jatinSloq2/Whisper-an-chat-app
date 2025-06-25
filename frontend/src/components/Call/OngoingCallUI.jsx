@@ -3,7 +3,8 @@ import { useCall } from "@/context/CallContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 const OngoingCallUI = () => {
-  const { inCall, endCall, localStream, remoteStream, callType, callAccepted  } = useCall();
+  const { inCall, endCall, localStream, remoteStream, callType, callAccepted } =
+    useCall();
 
   const localRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -22,23 +23,27 @@ const OngoingCallUI = () => {
 
   // Start timer when call really starts
   useEffect(() => {
-    if (inCall && !callStartTime) {
-  setCallStartTime(Date.now());
-}
-
     if (localRef.current && localStream?.current) {
       localRef.current.srcObject = localStream.current;
     }
+  }, [localStream]);
 
+  useEffect(() => {
     if (remoteStream?.current) {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream.current;
+        remoteVideoRef.current
+          .play()
+          .catch((e) => console.warn("Remote video autoplay blocked:", e));
       }
       if (remoteAudioRef.current) {
         remoteAudioRef.current.srcObject = remoteStream.current;
+        remoteAudioRef.current
+          .play()
+          .catch((e) => console.warn("Remote audio autoplay blocked:", e));
       }
     }
-  }, [inCall, localStream, remoteStream]);
+  }, [remoteStream]);
 
   // Update call duration
   useEffect(() => {
