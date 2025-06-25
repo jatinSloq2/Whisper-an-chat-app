@@ -29,16 +29,32 @@ export const CallProvider = ({ children }) => {
   const peerConnection = useRef(null);
   const callActive = useRef(false);
 
-  const iceServers = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      {
-        urls: "turn:openrelay.metered.ca:80",
-        username: "openrelayproject",
-        credential: "openrelayproject",
-      },
-    ],
-  };
+  const getIceServers = async () => {
+  try {
+    const response = await fetch("https://whisper-backend-kcj2.onrender.com//api/call/ice");
+    const data = await response.json();
+    return data.iceServers;
+  } catch (err) {
+    console.error("❌ Failed to fetch ICE servers:", err);
+    return [
+      { urls: "stun:stun.l.google.com:19302" }
+    ];
+  }
+};
+
+
+// const iceServers = await getIceServers();
+
+  // const iceServers = {
+  //   iceServers: [
+  //     { urls: "stun:stun.l.google.com:19302" },
+  //     {
+  //       urls: "turn:openrelay.metered.ca:80",
+  //       username: "openrelayproject",
+  //       credential: "openrelayproject",
+  //     },
+  //   ],
+  // };
 
   const getSafeUserMedia = async (constraints) => {
     try {
@@ -73,9 +89,12 @@ export const CallProvider = ({ children }) => {
     }
   };
 
-  const initPeerConnection = (toUserId) => {
-    console.log("📡 Initializing PeerConnection...");
-    peerConnection.current = new RTCPeerConnection(iceServers);
+  // const initPeerConnection = (toUserId) => {
+  //   console.log("📡 Initializing PeerConnection...");
+  //   peerConnection.current = new RTCPeerConnection(iceServers);
+  const initPeerConnection = (toUserId, iceServers) => {
+  console.log("📡 Initializing PeerConnection...");
+  peerConnection.current = new RTCPeerConnection({ iceServers });
 
     peerConnection.current.onicecandidate = (event) => {
       if (event.candidate) {
@@ -123,7 +142,10 @@ export const CallProvider = ({ children }) => {
       const localVideoEl = document.getElementById("local-video");
       if (localVideoEl) localVideoEl.srcObject = stream;
 
-      initPeerConnection(toUserId);
+      const iceServers = await getIceServers();
+initPeerConnection(toUserId, iceServers);
+console.log("✅ Using ICE servers:", iceServers);
+      // initPeerConnection(toUserId);
       stream
         .getTracks()
         .forEach((track) => peerConnection.current.addTrack(track, stream));
@@ -183,8 +205,10 @@ export const CallProvider = ({ children }) => {
 
       const localVideoEl = document.getElementById("local-video");
       if (localVideoEl) localVideoEl.srcObject = stream;
-
-      initPeerConnection(from);
+      const iceServers = await getIceServers();
+initPeerConnection(from, iceServers);
+console.log("✅ Using ICE servers:", iceServers);
+      // initPeerConnection(from);
       stream
         .getTracks()
         .forEach((track) => peerConnection.current.addTrack(track, stream));

@@ -12,6 +12,7 @@ import groupRouter from './routes/group.routes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import setupSocket from './socket.js';
+import callRouter from './routes/xirsys.js';
 
 dotenv.config()
 
@@ -48,6 +49,7 @@ app.use(cookieParser());
 app.get("/", (req, res) => {
     res.send("Hello")
 })
+app.use("/api/call", callRouter)
 app.use('/api/auth', authRouter);
 app.use('/api/forgetpassword', forgetPassRouter)
 app.use('/api/contact', contactRouter);
