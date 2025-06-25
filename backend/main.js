@@ -24,10 +24,13 @@ const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 app.set('trust proxy', 1);
 app.use(cors({
-    origin: [
-        "http://localhost:5173",
-        "https://whisper-an-chat-app.netlify.app"
-    ],
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("CORS Not Allowed: " + origin));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
 }));
@@ -35,7 +38,7 @@ app.use(cors({
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(express.json());
 app.use(cookieParser());
-app.get("/",(req,res)=>{
+app.get("/", (req, res) => {
     res.send("Hello")
 })
 app.use('/api/auth', authRouter);

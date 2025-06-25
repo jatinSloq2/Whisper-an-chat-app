@@ -10,10 +10,13 @@ dotenv.config();
 const setupSocket = (server) => {
   const io = new SocketIOServer(server, {
     cors: {
-      origin: [
-        "http://localhost:5173",
-        "https://whisper-an-chat-app.netlify.app"
-      ],
+      origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       methods: ["GET", "POST"],
       credentials: true,
     },
