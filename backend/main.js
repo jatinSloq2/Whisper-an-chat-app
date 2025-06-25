@@ -26,9 +26,7 @@ app.set('trust proxy', 1);
 app.use(cors({
     origin: [
         "http://localhost:5173",
-        "http://192.168.60.196:5173",
-        "https://c8b2-2409-40d4-30d2-af08-7c6a-d5c6-985e-9083.ngrok-free.app",
-        "https://merry-licorice-ef90b0.netlify.app/"
+        "https://whisper-an-chat-app.netlify.app"
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
