@@ -1,4 +1,4 @@
-import React, {
+ import React, {
   createContext,
   useContext,
   useEffect,
@@ -70,7 +70,7 @@ export const CallProvider = ({ children }) => {
     }
   };
 
-  const initPeerConnection = (toUserId, type) => {
+  const initPeerConnection = (toUserId) => {
     peerConnection.current = new RTCPeerConnection(iceServers);
 
     peerConnection.current.onicecandidate = (event) => {
@@ -87,15 +87,22 @@ export const CallProvider = ({ children }) => {
     };
 
     peerConnection.current.ontrack = (event) => {
-      const remoteStreamObject = event.streams[0];
-      remoteStream.current = remoteStreamObject;
-      setRemoteAudio(remoteStreamObject);
+      if (!remoteStream.current) {
+        remoteStream.current = new MediaStream();
+        setRemoteAudio(remoteStream.current); // audio and video share same stream
+      }
 
+      remoteStream.current.addTrack(event.track);
+
+      // Set remote audio element
       const remoteAudioEl = document.getElementById("remote-audio");
-      if (remoteAudioEl) remoteAudioEl.srcObject = remoteStreamObject;
+      if (remoteAudioEl) remoteAudioEl.srcObject = remoteStream.current;
 
+      // Set remote video element
       const remoteVideoEl = document.getElementById("remote-video");
-      if (remoteVideoEl) remoteVideoEl.srcObject = remoteStreamObject;
+      if (remoteVideoEl) remoteVideoEl.srcObject = remoteStream.current;
+
+      console.log("📥 Track added:", event.track.kind);
     };
   };
 
@@ -126,8 +133,9 @@ export const CallProvider = ({ children }) => {
       if (localVideoEl) localVideoEl.srcObject = stream;
 
       initPeerConnection(toUserId, type);
-
+      console.log("🎥 Local Media Tracks:");
       stream.getTracks().forEach((track) => {
+        console.log(`• ${track.kind}`, track);
         peerConnection.current.addTrack(track, stream);
       });
 
@@ -179,8 +187,9 @@ export const CallProvider = ({ children }) => {
       if (localVideoEl) localVideoEl.srcObject = stream;
 
       initPeerConnection(from, type);
-
+      console.log("🎥 Local Media Tracks:");
       stream.getTracks().forEach((track) => {
+        console.log(` ${track.kind}`, track);
         peerConnection.current.addTrack(track, stream);
       });
 

@@ -10,6 +10,7 @@ dotenv.config();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://whisper-for-chat.netlify.app",
+  "http://192.168.60.196:5173"
 ];
 const setupSocket = (server) => {
   const io = new SocketIOServer(server, {
