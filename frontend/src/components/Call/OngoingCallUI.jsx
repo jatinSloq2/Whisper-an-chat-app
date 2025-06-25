@@ -20,15 +20,22 @@ const OngoingCallUI = () => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [duration, setDuration] = useState("00:00");
 
+  const remotePlayedRef = useRef(false); // prevent re-calling play()
+  const localPlayedRef = useRef(false);
+  const [playBlocked, setPlayBlocked] = useState(false); // fallback if autoplay fails
+
   // Reset on call end
   useEffect(() => {
     if (!inCall) {
       setCallStartTime(null);
       setDuration("00:00");
+      remotePlayedRef.current = false;
+      localPlayedRef.current = false;
+      setPlayBlocked(false);
     }
   }, [inCall]);
 
-  // Start timer when call is accepted
+  // Start timer
   useEffect(() => {
     if (inCall && callAccepted && !callStartTime) {
       setCallStartTime(Date.now());
@@ -37,36 +44,44 @@ const OngoingCallUI = () => {
 
   // Bind local stream
   useEffect(() => {
-    if (localRef.current && localStream?.current) {
+    if (localRef.current && localStream?.current && !localPlayedRef.current) {
       localRef.current.srcObject = localStream.current;
       localRef.current
         .play()
-        .catch((e) => console.warn("Local video autoplay blocked:", e));
+        .then(() => {
+          localPlayedRef.current = true;
+        })
+        .catch((e) =>
+          console.warn("🔇 Local video autoplay blocked:", e.message)
+        );
     }
   }, [localStream]);
 
-  // Bind remote stream (from state)
+  // Bind remote stream
   useEffect(() => {
-    if (remoteStreamState) {
-      console.log("🎬 Binding remote stream:", remoteStreamState);
+    if (
+      remoteStreamState &&
+      remoteVideoRef.current &&
+      !remotePlayedRef.current
+    ) {
+      remoteVideoRef.current.srcObject = remoteStreamState;
+      remoteAudioRef.current.srcObject = remoteStreamState;
 
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStreamState;
-        remoteVideoRef.current
-          .play()
-          .catch((e) => console.warn("Remote video autoplay blocked:", e));
-      }
-
-      if (remoteAudioRef.current) {
-        remoteAudioRef.current.srcObject = remoteStreamState;
-        remoteAudioRef.current
-          .play()
-          .catch((e) => console.warn("Remote audio autoplay blocked:", e));
-      }
+      Promise.all([
+        remoteVideoRef.current.play(),
+        remoteAudioRef.current.play(),
+      ])
+        .then(() => {
+          remotePlayedRef.current = true;
+        })
+        .catch((err) => {
+          console.warn("🔇 Remote media autoplay blocked:", err.message);
+          setPlayBlocked(true);
+        });
     }
   }, [remoteStreamState]);
 
-  // Call duration updater
+  // Duration updater
   useEffect(() => {
     if (!callStartTime) return;
 
@@ -108,7 +123,7 @@ const OngoingCallUI = () => {
           )}
         </div>
 
-        {/* Media Display */}
+        {/* Media */}
         {isVideoCall ? (
           <div className="relative w-full max-w-xl h-[60vh] rounded-xl overflow-hidden border border-zinc-700 shadow-2xl bg-zinc-900">
             <video
@@ -136,7 +151,22 @@ const OngoingCallUI = () => {
           </div>
         )}
 
+        {/* Remote audio (hidden) */}
         <audio ref={remoteAudioRef} autoPlay hidden />
+
+        {/* Manual play fallback */}
+        {playBlocked && (
+          <button
+            className="mt-4 px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-700 text-white"
+            onClick={() => {
+              remoteVideoRef.current?.play().catch(console.warn);
+              remoteAudioRef.current?.play().catch(console.warn);
+              setPlayBlocked(false);
+            }}
+          >
+            🔊 Tap to resume media
+          </button>
+        )}
 
         {/* End Call Button */}
         <button
