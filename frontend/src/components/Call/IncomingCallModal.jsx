@@ -8,6 +8,9 @@ const IncomingCallUI = () => {
   const { chatList } = useContacts();
 
   const [isMobile, setIsMobile] = useState(false);
+  const x = useMotionValue(0); // ✅ Moved before conditional
+  const y = useMotionValue(0); // ✅ Moved before conditional
+
   const callerId = incomingCall?.from;
   const isAnswered = inCall;
 
@@ -28,11 +31,18 @@ const IncomingCallUI = () => {
 
   if (!incomingCall || !callerId || isAnswered) return null;
 
-  const callerName =
-    chatList.find((c) => c.id === callerId)?.contactName || `+${callerId}`;
+  const matchingContact = chatList.find((c) => c.id === callerId);
+  const callerName = matchingContact?.contactName || `+${callerId}`;
 
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
+  console.log("📞 Incoming call from:", callerName);
+  if (matchingContact) {
+    console.log("📇 Contact Info:", {
+      id: matchingContact.id,
+      name: matchingContact.contactName,
+      firstName: matchingContact.firstName,
+    });
+  }
+
   return (
     <AnimatePresence>
       <motion.div
@@ -85,8 +95,8 @@ const IncomingCallUI = () => {
             drag="y"
             dragConstraints={{ top: -100, bottom: 100 }}
             onDragEnd={(e, info) => {
-              if (!incomingCall || isAnswered) return; 
-              if (info.offset.y < -80) answerCall(incomingCall); 
+              if (!incomingCall || isAnswered) return;
+              if (info.offset.y < -80) answerCall(incomingCall);
               if (info.offset.y > 80) endCall();
             }}
           >
