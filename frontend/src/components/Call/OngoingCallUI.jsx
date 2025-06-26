@@ -32,6 +32,7 @@ const OngoingCallUI = () => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [duration, setDuration] = useState("00:00");
 
+  // 🕓 Call duration timer
   useEffect(() => {
     if (!inCall) {
       setCallStartTime(null);
@@ -56,38 +57,19 @@ const OngoingCallUI = () => {
     return () => clearInterval(interval);
   }, [callStartTime]);
 
+  // ✅ Ensure self video always appears once call is accepted
   useEffect(() => {
-    if (localRef.current && localStream?.current) {
+    if (isVideoCall && callAccepted && localRef.current && localStream?.current) {
       localRef.current.srcObject = localStream.current;
     }
-  }, [localStream]);
+  }, [callAccepted, isVideoCall]);
 
+  // ✅ Attach remote video/audio when ready
   useEffect(() => {
     if (!remoteStreamState) return;
     if (remoteRef.current) remoteRef.current.srcObject = remoteStreamState;
-    if (remoteAudioRef.current)
-      remoteAudioRef.current.srcObject = remoteStreamState;
+    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStreamState;
   }, [remoteStreamState]);
-
-  useEffect(() => {
-    const setupInitialCamera = async () => {
-      if (isVideoCall && !localStream?.current) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode },
-            audio: true, // only if needed
-          });
-          localStream.current = stream;
-          if (localRef.current) {
-            localRef.current.srcObject = stream;
-          }
-        } catch (err) {
-          console.error("Failed to initialize camera", err);
-        }
-      }
-    };
-    setupInitialCamera();
-  }, [isVideoCall, localStream]);
 
   const toggleMute = () => {
     const track = localStream?.current?.getAudioTracks()?.[0];

@@ -71,15 +71,15 @@ export const CallProvider = ({ children }) => {
   }) => {
     if (callLogSent.current) return debug("🚫 Duplicate log prevented");
     if (!type) {
-  debug("⚠️ Skipping call log: messageType is undefined");
-  return;
-}
+      debug("⚠️ Skipping call log: messageType is undefined");
+      return;
+    }
     callLogSent.current = true;
 
     socket.emit("store-call-log", {
       sender,
       recipient,
-      messageType: type || "audio", 
+      messageType: type || "audio",
       callDetails: { duration, startedAt, endedAt, status },
     });
   };
@@ -323,6 +323,11 @@ export const CallProvider = ({ children }) => {
         endCall();
         setIncomingCall(null);
         toast.info("Call timed out.");
+
+        socket.emit("call-timeout", {
+          to: from,
+          from: userInfo.id,
+        });
       }, CALL_TIMEOUT);
     });
 
@@ -367,6 +372,12 @@ export const CallProvider = ({ children }) => {
       callEndedByMe.current = false;
       endCall();
       toast.info("The other user has ended the call.");
+    });
+
+    socket.on("call-timeout", ({ from }) => {
+      if (from !== peerId) return;
+      toast.info("User didn't answer the call.");
+      endCall();
     });
 
     return () => {
