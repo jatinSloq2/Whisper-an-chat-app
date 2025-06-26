@@ -70,12 +70,16 @@ export const CallProvider = ({ children }) => {
     duration = 0,
   }) => {
     if (callLogSent.current) return debug("🚫 Duplicate log prevented");
+    if (!type) {
+  debug("⚠️ Skipping call log: messageType is undefined");
+  return;
+}
     callLogSent.current = true;
 
     socket.emit("store-call-log", {
       sender,
       recipient,
-      messageType: type,
+      messageType: type || "audio", 
       callDetails: { duration, startedAt, endedAt, status },
     });
   };
