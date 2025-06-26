@@ -129,6 +129,14 @@ const setupSocket = (server) => {
       emitToUser(to, "incoming-call", { from, offer, type });
       emitToUser(from, "call-init-sent", { to });
     });
+    socket.on("check-user-availability", ({ to }, callback) => {
+      const socketSet = userSocketMap.get(to);
+      if (socketSet && socketSet.size > 0) {
+        callback({ online: true });
+      } else {
+        callback({ online: false });
+      }
+    });
     socket.on("answer-call", ({ to, answer }) => {
       if (!answer?.type || !answer?.sdp) {
         return;
