@@ -167,6 +167,13 @@ export const CallProvider = ({ children }) => {
         type,
         offer,
       });
+
+      incomingCallTimeoutRef.current = setTimeout(() => {
+        callEndedByMe.current = true;
+        endCall();
+        setIncomingCall(null);
+        toast.info("Call timed out.");
+      }, CALL_TIMEOUT);
     } catch (err) {
       stream.getTracks().forEach((t) => t.stop());
       handleError(err, "Start call error");
@@ -386,6 +393,7 @@ export const CallProvider = ({ children }) => {
       socket.off("user-busy");
       socket.off("ice-candidate");
       socket.off("call-ended");
+      socket.off("call-timeout");
     };
   }, [socket, inCall, endCall]);
 
