@@ -1,3 +1,5 @@
+// ✅ Fully Updated OngoingCallUI.jsx with View Modes + Draggable Mini View
+
 import MediaControlButton from "@/components/Call/MediaControlButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -7,6 +9,7 @@ import { useCall } from "@/context/CallContext";
 import { AnimatePresence, motion } from "framer-motion";
 import { SwitchCamera, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import Draggable from "react-draggable";
 import {
   MdMic,
   MdMicOff,
@@ -24,6 +27,7 @@ const OngoingCallUI = () => {
     callType,
     callAccepted,
     replaceVideoTrack,
+    viewMode, setViewMode,
   } = useCall();
 
   const localRef = useRef(null);
@@ -74,7 +78,12 @@ const OngoingCallUI = () => {
   useEffect(() => {
     if (localRef.current && localStream?.current && !localPlayedRef.current) {
       localRef.current.srcObject = localStream.current;
-      localRef.current.play().then(() => (localPlayedRef.current = true)).catch((e) => console.warn("🔇 Local video autoplay blocked:", e.message));
+      localRef.current
+        .play()
+        .then(() => (localPlayedRef.current = true))
+        .catch((e) =>
+          console.warn("🔇 Local video autoplay blocked:", e.message)
+        );
     }
   }, [localStream]);
 
@@ -93,6 +102,28 @@ const OngoingCallUI = () => {
 
     remotePlayedRef.current = true;
   }, [remoteStreamState]);
+
+  useEffect(() => {
+    const stream = localStream?.current;
+    const video = localRef.current;
+
+    if (video && stream) {
+      const [videoTrack] = stream.getVideoTracks();
+      if (videoTrack && !videoTrack.enabled) {
+        videoTrack.enabled = true;
+      }
+
+      video.srcObject = stream;
+      video
+        .play()
+        .then(() => {
+          localPlayedRef.current = true;
+        })
+        .catch((e) =>
+          console.warn("🔇 Local video autoplay blocked:", e.message)
+        );
+    }
+  }, [localStream]);
 
   const toggleMute = () => {
     const audioTrack = localStream?.current?.getAudioTracks()?.[0];
@@ -151,88 +182,156 @@ const OngoingCallUI = () => {
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ type: "spring", stiffness: 180, damping: 18 }}
-        className="fixed inset-0 z-[9999] bg-black/90 text-white flex flex-col items-center justify-center p-6"
+        className="z-[9999] text-white"
       >
-        <div className="mb-4 text-center">
-          <p className="text-sm text-gray-300">
-            {isVideoCall ? "Video Call" : "Audio Call"}
-          </p>
-          {!callAccepted ? (
-            <div className="flex items-center justify-center gap-2 mt-2 text-yellow-400 font-semibold animate-pulse">
-              🔔 Ringing...
+        {viewMode === "mini" ? (
+          <Draggable>
+            <div className="fixed bottom-4 right-4 cursor-move">
+              <Card className="w-64 h-36 overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl">
+                <CardContent className="p-0 h-full">
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover bg-black"
+                  />
+                  <video
+                    ref={localRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="absolute bottom-2 right-2 w-20 h-16 rounded-md border border-white object-cover bg-zinc-800"
+                  />
+                </CardContent>
+              </Card>
             </div>
-          ) : (
-            <p className="text-sm text-gray-400 mt-2">{duration}</p>
-          )}
-        </div>
-
-        {isVideoCall ? (
-          <Card className="w-full max-w-xl h-[60vh] overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl relative">
-            <CardContent className="p-0 h-full">
-              <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover bg-black" />
-              <video ref={localRef} autoPlay muted playsInline className="absolute bottom-4 right-4 w-28 h-20 rounded-md shadow-lg border border-white object-cover bg-zinc-800" />
-            </CardContent>
-          </Card>
+          </Draggable>
         ) : (
-          <div className="flex flex-col items-center justify-center mb-6">
-            <div className="w-24 h-24 rounded-full bg-zinc-700 flex items-center justify-center text-5xl shadow-xl">
-              🎧
+          <div
+            className={
+              viewMode === "full"
+                ? "fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-6"
+                : "flex flex-col items-center justify-center p-6"
+            }
+          >
+            <div className="mb-4 text-center">
+              <p className="text-sm text-gray-300">
+                {isVideoCall ? "Video Call" : "Audio Call"}
+              </p>
+              {!callAccepted ? (
+                <div className="flex items-center justify-center gap-2 mt-2 text-yellow-400 font-semibold animate-pulse">
+                  🔔 Ringing...
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 mt-2">{duration}</p>
+              )}
             </div>
-            <p className="text-lg mt-4 font-semibold text-white">
-              {callAccepted ? duration : "Calling..."}
-            </p>
-          </div>
-        )}
 
-        <audio ref={remoteAudioRef} autoPlay hidden />
-
-        {playBlocked && (
-          <div className="mt-4 w-full max-w-sm">
-            <Alert variant="default" className="bg-emerald-700/10 border-emerald-600">
-              <Volume2 className="h-4 w-4" />
-              <AlertTitle>Media Paused</AlertTitle>
-              <AlertDescription>
-                <Button onClick={resumeMedia} className="mt-2">
-                  🔊 Tap to resume media
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
-
-        <TooltipProvider>
-          <div className="mt-6 flex items-center gap-4 flex-wrap justify-center">
-            <MediaControlButton
-              onClick={toggleMute}
-              icon={muted ? <MdMicOff className="text-red-500" /> : <MdMic />}
-              label={muted ? "Unmute" : "Mute"}
-            />
-
-            <MediaControlButton
-              onClick={endCall}
-              icon={<MdOutlineCallEnd />}
-              label="End Call"
-              className="bg-red-600 hover:bg-red-700 text-white w-16 h-16 text-2xl"
-              variant="default"
-            />
-
-            {isVideoCall && (
-              <>
-                <MediaControlButton
-                  onClick={toggleCamera}
-                  icon={cameraOff ? <MdVideocamOff className="text-red-500" /> : <MdVideocam />}
-                  label={cameraOff ? "Turn Camera On" : "Turn Camera Off"}
-                />
-
-                <MediaControlButton
-                  onClick={switchCamera}
-                  icon={<SwitchCamera />}
-                  label="Switch Camera"
-                />
-              </>
+            {isVideoCall ? (
+              <Card className="w-full max-w-xl h-[60vh] overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl relative">
+                <CardContent className="p-0 h-full">
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className="w-full h-full object-cover bg-black"
+                  />
+                  <video
+                    ref={localRef}
+                    autoPlay
+                    muted
+                    playsInline
+                    className="absolute bottom-4 right-4 w-28 h-20 rounded-md shadow-lg border border-white object-cover bg-zinc-800"
+                  />
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="flex flex-col items-center justify-center mb-6">
+                <div className="w-24 h-24 rounded-full bg-zinc-700 flex items-center justify-center text-5xl shadow-xl">
+                  🎧
+                </div>
+                <p className="text-lg mt-4 font-semibold text-white">
+                  {callAccepted ? duration : "Calling..."}
+                </p>
+              </div>
             )}
+
+            <audio ref={remoteAudioRef} autoPlay hidden />
+
+            {playBlocked && (
+              <div className="mt-4 w-full max-w-sm">
+                <Alert
+                  variant="default"
+                  className="bg-emerald-700/10 border-emerald-600"
+                >
+                  <Volume2 className="h-4 w-4" />
+                  <AlertTitle>Media Paused</AlertTitle>
+                  <AlertDescription>
+                    <Button onClick={resumeMedia} className="mt-2">
+                      🔊 Tap to resume media
+                    </Button>
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+
+            <TooltipProvider>
+              <div className="mt-6 flex items-center gap-4 flex-wrap justify-center">
+                <MediaControlButton
+                  onClick={toggleMute}
+                  icon={muted ? <MdMicOff className="text-red-500" /> : <MdMic />}
+                  label={muted ? "Unmute" : "Mute"}
+                />
+
+                <MediaControlButton
+                  onClick={endCall}
+                  icon={<MdOutlineCallEnd />}
+                  label="End Call"
+                  className="bg-red-600 hover:bg-red-700 text-white w-16 h-16 text-2xl"
+                  variant="default"
+                />
+
+                {isVideoCall && (
+                  <>
+                    <MediaControlButton
+                      onClick={toggleCamera}
+                      icon={
+                        cameraOff ? (
+                          <MdVideocamOff className="text-red-500" />
+                        ) : (
+                          <MdVideocam />
+                        )
+                      }
+                      label={cameraOff ? "Turn Camera On" : "Turn Camera Off"}
+                    />
+
+                    <MediaControlButton
+                      onClick={switchCamera}
+                      icon={<SwitchCamera />}
+                      label="Switch Camera"
+                    />
+                  </>
+                )}
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode(viewMode === "full" ? "default" : "full")}
+                >
+                  {viewMode === "full" ? "Exit Fullscreen" : "Fullscreen"}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setViewMode(viewMode === "mini" ? "default" : "mini")}
+                >
+                  {viewMode === "mini" ? "Expand" : "Mini View"}
+                </Button>
+              </div>
+            </TooltipProvider>
           </div>
-        </TooltipProvider>
+        )}
       </motion.div>
     </AnimatePresence>
   );

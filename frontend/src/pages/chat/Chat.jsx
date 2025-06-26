@@ -13,6 +13,7 @@ import Chat_container from "./components/chat_container/Chat_container";
 import Contacts_container from "./components/contacts_container/Contacts_container";
 import Empty_chat_container from "./components/empty_chats_container/Empty_chat_container";
 import Settings_container from "./components/Settings/Settings_container";
+import { useCall } from "@/context/CallContext";
 
 const Chat = () => {
   const { userInfo } = useAppStore();
@@ -25,9 +26,8 @@ const Chat = () => {
   } = useMessages();
 
   const { isSettingsOpen } = useSettings();
-
+  const { inCall, viewMode, toggleViewMode } = useCall();
   const navigate = useNavigate();
-
   useEffect(() => {
     if (!userInfo.profileSetup) {
       toast.error(
@@ -39,7 +39,6 @@ const Chat = () => {
 
   return (
     <div className="flex h-[100vh] text-white overflow-hidden">
-      {/* 🛑 Incoming call modal */}
       <OngoingCallUI />
       <CallAudio />
       <IncomingCallUI />
@@ -54,6 +53,14 @@ const Chat = () => {
           <h5 className="text-5xl animate-pulse"> Downloading File</h5>
           {fileDownloadProgress}%
         </div>
+      )}
+      {inCall && (
+        <button
+          onClick={() => toggleViewMode()} // from context or prop
+          className="fixed bottom-20 right-4 z-[9999] bg-emerald-600 text-white px-3 py-2 rounded shadow-lg hover:bg-emerald-700"
+        >
+          {viewMode === "mini" ? "Maximize Call" : "Minimize Call"}
+        </button>
       )}
 
       <ErrorBoundary>
