@@ -28,7 +28,8 @@ const STUN_TURN_SERVERS = [
 
 const CALL_TIMEOUT = 30000;
 const DEBUG_MODE = true;
-const debug = (...args) => DEBUG_MODE && console.log("%c[Call Debug]", "color: cyan", ...args);
+const debug = (...args) =>
+  DEBUG_MODE && console.log("%c[Call Debug]", "color: cyan", ...args);
 const handleError = (err, context = "Error") => {
   console.error(`[${context}]`, err);
   toast.error(`${context}: ${err?.message || "Unknown error"}`);
@@ -59,7 +60,15 @@ export const CallProvider = ({ children }) => {
   const toggleViewMode = () =>
     setViewMode((prev) => (prev === "mini" ? "full" : "mini"));
 
-  const logCall = ({ sender, recipient, type, status, startedAt, endedAt, duration = 0 }) => {
+  const logCall = ({
+    sender,
+    recipient,
+    type,
+    status,
+    startedAt,
+    endedAt,
+    duration = 0,
+  }) => {
     if (callLogSent.current) return debug("🚫 Duplicate log prevented");
     callLogSent.current = true;
 
@@ -81,7 +90,8 @@ export const CallProvider = ({ children }) => {
         },
         video,
       });
-      if (!stream.getAudioTracks().length) toast.error("No audio input detected.");
+      if (!stream.getAudioTracks().length)
+        toast.error("No audio input detected.");
       return stream;
     } catch (err) {
       handleError(err, "Media access error");
@@ -92,7 +102,9 @@ export const CallProvider = ({ children }) => {
   const applyQueuedCandidates = async () => {
     for (const candidate of iceQueue.current) {
       try {
-        await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+        await peerConnection.current.addIceCandidate(
+          new RTCIceCandidate(candidate)
+        );
       } catch (err) {
         handleError(err, "Apply ICE error");
       }
@@ -139,7 +151,9 @@ export const CallProvider = ({ children }) => {
       callActive.current = true;
       setInCall(true);
 
-      stream.getTracks().forEach((track) => peerConnection.current.addTrack(track, stream));
+      stream
+        .getTracks()
+        .forEach((track) => peerConnection.current.addTrack(track, stream));
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
 
@@ -158,69 +172,99 @@ export const CallProvider = ({ children }) => {
     }
   };
 
-  const startCall = useCallback(async (toUserId, type = "audio") => {
-    callEndedByMe.current = false;
-    callLogSent.current = false;
-    setIsLoading(true);
+  const startCall = useCallback(
+    async (toUserId, type = "audio") => {
+      callEndedByMe.current = false;
+      callLogSent.current = false;
+      setIsLoading(true);
 
-    socket.emit("check-user-availability", { to: toUserId }, async (res) => {
-      if (!res?.online) return toast.error("User is not available."), setIsLoading(false);
+      socket.emit("check-user-availability", { to: toUserId }, async (res) => {
+        if (!res?.online)
+          return toast.error("User is not available."), setIsLoading(false);
+
+        const stream = await getSafeUserMedia({ video: type === "video" });
+        if (!stream) return setIsLoading(false);
+
+        await continueStartCall(toUserId, type, stream);
+      });
+    },
+    [socket, userInfo, setIsLoading]
+  );
+
+  const answerCall = useCallback(
+    async ({ from, offer, type }) => {
+      callEndedByMe.current = false;
+      callLogSent.current = false;
+      setIsLoading(true);
 
       const stream = await getSafeUserMedia({ video: type === "video" });
-      if (!stream) return setIsLoading(false);
+      if (!stream || !offer?.sdp) return setIsLoading(false);
 
-      await continueStartCall(toUserId, type, stream);
-    });
-  }, [socket, userInfo, setIsLoading]);
+      try {
+        initPeerConnection(from);
+        setCallType(type);
+        setPeerId(from);
+        localStream.current = stream;
+        localStream.current.activeStartTime = new Date();
+        callActive.current = true;
+        setInCall(true);
 
-  const answerCall = useCallback(async ({ from, offer, type }) => {
-    callEndedByMe.current = false;
-    callLogSent.current = false;
-    setIsLoading(true);
+        stream
+          .getTracks()
+          .forEach((track) => peerConnection.current.addTrack(track, stream));
+        await peerConnection.current.setRemoteDescription(
+          new RTCSessionDescription(offer)
+        );
+        await applyQueuedCandidates();
+        const answer = await peerConnection.current.createAnswer();
+        await peerConnection.current.setLocalDescription(answer);
 
-    const stream = await getSafeUserMedia({ video: type === "video" });
-    if (!stream || !offer?.sdp) return setIsLoading(false);
-
-    try {
-      initPeerConnection(from);
-      setCallType(type);
-      setPeerId(from);
-      localStream.current = stream;
-      localStream.current.activeStartTime = new Date();
-      callActive.current = true;
-      setInCall(true);
-
-      stream.getTracks().forEach((track) => peerConnection.current.addTrack(track, stream));
-      await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
-      await applyQueuedCandidates();
-      const answer = await peerConnection.current.createAnswer();
-      await peerConnection.current.setLocalDescription(answer);
-
-      socket.emit("answer-call", { to: from, answer });
-      setCallAccepted(true);
-      clearTimeout(incomingCallTimeoutRef.current);
-    } catch (err) {
-      stream.getTracks().forEach((t) => t.stop());
-      handleError(err, "Answer call error");
-      endCall();
-    } finally {
-      setIsLoading(false);
-    }
-  }, [socket, userInfo, setIsLoading]);
+        socket.emit("answer-call", { to: from, answer });
+        setCallAccepted(true);
+        clearTimeout(incomingCallTimeoutRef.current);
+      } catch (err) {
+        stream.getTracks().forEach((t) => t.stop());
+        handleError(err, "Answer call error");
+        endCall();
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [socket, userInfo, setIsLoading]
+  );
 
   const endCall = useCallback(() => {
     if (!callActive.current && !incomingCall) return;
-    if (callEndedByMe.current) return;
+    if (callEndedByMe.current) {
+      debug("Call already ended by me. Skipping endCall.");
+      return;
+    }
+    debug("Ending call now...");
 
     callEndedByMe.current = true;
-    socket.emit("end-call", { to: peerId || incomingCall?.from, from: userInfo.id });
+    socket.emit("end-call", {
+      to: peerId || incomingCall?.from,
+      from: userInfo.id,
+    });
 
     const end = new Date();
     const start = localStream.current?.activeStartTime || end;
     const duration = callAccepted ? Math.floor((end - start) / 1000) : 0;
-    const status = callAccepted ? "answered" : incomingCall ? "missed" : "rejected";
+    const status = callAccepted
+      ? "answered"
+      : incomingCall
+      ? "missed"
+      : "rejected";
 
-    logCall({ sender: userInfo.id, recipient: peerId || incomingCall?.from, type: callType, status, startedAt: start, endedAt: end, duration });
+    logCall({
+      sender: userInfo.id,
+      recipient: peerId || incomingCall?.from,
+      type: callType,
+      status,
+      startedAt: start,
+      endedAt: end,
+      duration,
+    });
 
     peerConnection.current?.close?.();
     peerConnection.current = null;
@@ -244,7 +288,9 @@ export const CallProvider = ({ children }) => {
 
   const replaceVideoTrack = async (newTrack) => {
     try {
-      const sender = peerConnection.current?.getSenders()?.find((s) => s.track?.kind === "video");
+      const sender = peerConnection.current
+        ?.getSenders()
+        ?.find((s) => s.track?.kind === "video");
       if (sender) await sender.replaceTrack(newTrack);
     } catch (err) {
       handleError(err, "Replace video track error");
@@ -280,7 +326,9 @@ export const CallProvider = ({ children }) => {
       try {
         if (callAccepted) return;
         if (answer?.sdp && peerConnection.current) {
-          await peerConnection.current.setRemoteDescription(new RTCSessionDescription(answer));
+          await peerConnection.current.setRemoteDescription(
+            new RTCSessionDescription(answer)
+          );
           await applyQueuedCandidates();
           setCallAccepted(true);
         }
@@ -300,7 +348,9 @@ export const CallProvider = ({ children }) => {
     socket.on("ice-candidate", async ({ candidate }) => {
       try {
         if (peerConnection.current?.signalingState === "stable") {
-          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+          await peerConnection.current.addIceCandidate(
+            new RTCIceCandidate(candidate)
+          );
         } else {
           iceQueue.current.push(candidate);
         }
@@ -310,7 +360,7 @@ export const CallProvider = ({ children }) => {
     });
 
     socket.on("call-ended", () => {
-      callEndedByMe.current = true;
+      callEndedByMe.current = false;
       endCall();
       toast.info("The other user has ended the call.");
     });

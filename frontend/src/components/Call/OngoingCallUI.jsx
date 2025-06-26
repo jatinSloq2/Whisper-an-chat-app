@@ -65,8 +65,29 @@ const OngoingCallUI = () => {
   useEffect(() => {
     if (!remoteStreamState) return;
     if (remoteRef.current) remoteRef.current.srcObject = remoteStreamState;
-    if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStreamState;
+    if (remoteAudioRef.current)
+      remoteAudioRef.current.srcObject = remoteStreamState;
   }, [remoteStreamState]);
+
+  useEffect(() => {
+    const setupInitialCamera = async () => {
+      if (isVideoCall && !localStream?.current) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode },
+            audio: true, // only if needed
+          });
+          localStream.current = stream;
+          if (localRef.current) {
+            localRef.current.srcObject = stream;
+          }
+        } catch (err) {
+          console.error("Failed to initialize camera", err);
+        }
+      }
+    };
+    setupInitialCamera();
+  }, [isVideoCall, localStream]);
 
   const toggleMute = () => {
     const track = localStream?.current?.getAudioTracks()?.[0];
@@ -109,8 +130,12 @@ const OngoingCallUI = () => {
   return (
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center text-white p-4">
       <div className="text-center mb-4">
-        <p className="text-gray-300 text-sm">{isVideoCall ? "Video Call" : "Audio Call"}</p>
-        <p className="text-sm mt-2 text-gray-400">{callAccepted ? duration : "Calling..."}</p>
+        <p className="text-gray-300 text-sm">
+          {isVideoCall ? "Video Call" : "Audio Call"}
+        </p>
+        <p className="text-sm mt-2 text-gray-400">
+          {callAccepted ? duration : "Calling..."}
+        </p>
       </div>
 
       {isVideoCall ? (
@@ -134,7 +159,9 @@ const OngoingCallUI = () => {
           <div className="w-24 h-24 rounded-full bg-zinc-700 flex items-center justify-center text-4xl">
             🎧
           </div>
-          <p className="mt-4 text-white text-lg">{callAccepted ? duration : "Calling..."}</p>
+          <p className="mt-4 text-white text-lg">
+            {callAccepted ? duration : "Calling..."}
+          </p>
         </div>
       )}
 
@@ -158,7 +185,13 @@ const OngoingCallUI = () => {
           <>
             <MediaControlButton
               onClick={toggleCamera}
-              icon={cameraOff ? <MdVideocamOff className="text-red-500" /> : <MdVideocam />}
+              icon={
+                cameraOff ? (
+                  <MdVideocamOff className="text-red-500" />
+                ) : (
+                  <MdVideocam />
+                )
+              }
               label={cameraOff ? "Camera On" : "Camera Off"}
             />
             <MediaControlButton
