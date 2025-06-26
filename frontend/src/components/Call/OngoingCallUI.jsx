@@ -1,5 +1,3 @@
-// ✅ Updated OngoingCallUI.jsx with Mobile Support + Draggable Mini View Fix
-
 import MediaControlButton from "@/components/Call/MediaControlButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -18,6 +16,17 @@ import {
   MdVideocamOff,
 } from "react-icons/md";
 
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+};
+
 const OngoingCallUI = () => {
   const {
     inCall,
@@ -31,9 +40,12 @@ const OngoingCallUI = () => {
     setViewMode,
   } = useCall();
 
+  const isMobile = useIsMobile();
+
   const localRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
+  const draggableNodeRef = useRef(null);
 
   const [callStartTime, setCallStartTime] = useState(null);
   const [duration, setDuration] = useState("00:00");
@@ -44,8 +56,13 @@ const OngoingCallUI = () => {
 
   const remotePlayedRef = useRef(false);
   const localPlayedRef = useRef(false);
-
   const isVideoCall = callType === "video";
+
+  useEffect(() => {
+    if (isMobile && viewMode === "mini") {
+      setViewMode("full");
+    }
+  }, [isMobile, viewMode]);
 
   useEffect(() => {
     if (!inCall) {
@@ -79,26 +96,22 @@ const OngoingCallUI = () => {
   useEffect(() => {
     if (localRef.current && localStream?.current && !localPlayedRef.current) {
       localRef.current.srcObject = localStream.current;
-      localRef.current
-        .play()
-        .then(() => (localPlayedRef.current = true))
-        .catch((e) => console.warn("🔇 Local video autoplay blocked:", e.message));
+      localRef.current.play().then(() => {
+        localPlayedRef.current = true;
+      }).catch(e => console.warn("🔇 Local video autoplay blocked:", e.message));
     }
   }, [localStream]);
 
   useEffect(() => {
     if (!remoteStreamState || remotePlayedRef.current) return;
-
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamState;
       remoteVideoRef.current.play().catch(() => setPlayBlocked(true));
     }
-
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = remoteStreamState;
       remoteAudioRef.current.play().catch(() => setPlayBlocked(true));
     }
-
     remotePlayedRef.current = true;
   }, [remoteStreamState]);
 
@@ -122,22 +135,17 @@ const OngoingCallUI = () => {
     try {
       const oldTrack = localStream?.current?.getVideoTracks()?.[0];
       if (!oldTrack) return;
-
       oldTrack.stop();
-
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: facingMode === "user" ? "environment" : "user" },
         audio: false,
       });
-
       const newVideoTrack = newStream.getVideoTracks()[0];
-
       localStream.current.removeTrack(oldTrack);
       localStream.current.addTrack(newVideoTrack);
       localRef.current.srcObject = localStream.current;
-
       await replaceVideoTrack(newVideoTrack);
-      setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
+      setFacingMode(prev => prev === "user" ? "environment" : "user");
     } catch (err) {
       console.error("Camera switch failed:", err);
     }
@@ -161,36 +169,32 @@ const OngoingCallUI = () => {
         transition={{ type: "spring", stiffness: 180, damping: 18 }}
         className="z-[9999] text-white"
       >
-        {viewMode === "mini" ? (
-          <div className="fixed bottom-4 right-4 cursor-move w-[90vw] max-w-[270px] sm:w-64 sm:h-36 h-[140px] z-[9999]">
-            <Draggable bounds="parent" cancel="video">
-              <Card className="w-full h-full overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl rounded-xl relative">
-                <CardContent className="p-0 h-full">
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-cover bg-black"
-                  />
-                  <video
-                    ref={localRef}
-                    autoPlay
-                    muted
-                    playsInline
-                    className="absolute bottom-2 right-2 w-20 h-16 rounded-md border border-white object-cover bg-zinc-800"
-                  />
-                </CardContent>
-              </Card>
+        {viewMode === "mini" && !isMobile ? (
+          <div className="fixed bottom-4 right-4 w-[90vw] max-w-[270px] h-[140px] sm:w-64 sm:h-36 z-[9999]">
+            <Draggable nodeRef={draggableNodeRef} cancel="video">
+              <div ref={draggableNodeRef} className="cursor-move">
+                <Card className="w-full h-full overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl rounded-xl relative">
+                  <CardContent className="p-0 h-full">
+                    <video
+                      ref={remoteVideoRef}
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-cover bg-black"
+                    />
+                    <video
+                      ref={localRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      className="absolute bottom-2 right-2 w-20 h-16 rounded-md border border-white object-cover bg-zinc-800"
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </Draggable>
           </div>
         ) : (
-          <div
-            className={
-              viewMode === "full"
-                ? "fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-6 z-[9998]"
-                : "flex flex-col items-center justify-center p-6"
-            }
-          >
+          <div className="fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-6 z-[9998]">
             <div className="mb-4 text-center">
               <p className="text-sm text-gray-300">
                 {isVideoCall ? "Video Call" : "Audio Call"}
@@ -256,7 +260,9 @@ const OngoingCallUI = () => {
               <div className="mt-6 flex items-center gap-4 flex-wrap justify-center">
                 <MediaControlButton
                   onClick={toggleMute}
-                  icon={muted ? <MdMicOff className="text-red-500" /> : <MdMic />}
+                  icon={
+                    muted ? <MdMicOff className="text-red-500" /> : <MdMic />
+                  }
                   label={muted ? "Unmute" : "Mute"}
                 />
 
@@ -293,18 +299,24 @@ const OngoingCallUI = () => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setViewMode(viewMode === "full" ? "default" : "full")}
+                  onClick={() =>
+                    setViewMode(viewMode === "full" ? "default" : "full")
+                  }
                 >
                   {viewMode === "full" ? "Exit Fullscreen" : "Fullscreen"}
                 </Button>
 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setViewMode(viewMode === "mini" ? "default" : "mini")}
-                >
-                  {viewMode === "mini" ? "Expand" : "Mini View"}
-                </Button>
+                {!isMobile && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setViewMode(viewMode === "mini" ? "default" : "mini")
+                    }
+                  >
+                    {viewMode === "mini" ? "Expand" : "Mini View"}
+                  </Button>
+                )}
               </div>
             </TooltipProvider>
           </div>
