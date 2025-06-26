@@ -1,4 +1,4 @@
-// ✅ Fully Updated OngoingCallUI.jsx with View Modes + Draggable Mini View
+// ✅ Updated OngoingCallUI.jsx with Mobile Support + Draggable Mini View Fix
 
 import MediaControlButton from "@/components/Call/MediaControlButton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -27,7 +27,8 @@ const OngoingCallUI = () => {
     callType,
     callAccepted,
     replaceVideoTrack,
-    viewMode, setViewMode,
+    viewMode,
+    setViewMode,
   } = useCall();
 
   const localRef = useRef(null);
@@ -81,9 +82,7 @@ const OngoingCallUI = () => {
       localRef.current
         .play()
         .then(() => (localPlayedRef.current = true))
-        .catch((e) =>
-          console.warn("🔇 Local video autoplay blocked:", e.message)
-        );
+        .catch((e) => console.warn("🔇 Local video autoplay blocked:", e.message));
     }
   }, [localStream]);
 
@@ -102,28 +101,6 @@ const OngoingCallUI = () => {
 
     remotePlayedRef.current = true;
   }, [remoteStreamState]);
-
-  useEffect(() => {
-    const stream = localStream?.current;
-    const video = localRef.current;
-
-    if (video && stream) {
-      const [videoTrack] = stream.getVideoTracks();
-      if (videoTrack && !videoTrack.enabled) {
-        videoTrack.enabled = true;
-      }
-
-      video.srcObject = stream;
-      video
-        .play()
-        .then(() => {
-          localPlayedRef.current = true;
-        })
-        .catch((e) =>
-          console.warn("🔇 Local video autoplay blocked:", e.message)
-        );
-    }
-  }, [localStream]);
 
   const toggleMute = () => {
     const audioTrack = localStream?.current?.getAudioTracks()?.[0];
@@ -185,9 +162,9 @@ const OngoingCallUI = () => {
         className="z-[9999] text-white"
       >
         {viewMode === "mini" ? (
-          <Draggable>
-            <div className="fixed bottom-4 right-4 cursor-move">
-              <Card className="w-64 h-36 overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl">
+          <div className="fixed bottom-4 right-4 cursor-move w-[90vw] max-w-[270px] sm:w-64 sm:h-36 h-[140px] z-[9999]">
+            <Draggable bounds="parent" cancel="video">
+              <Card className="w-full h-full overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl rounded-xl relative">
                 <CardContent className="p-0 h-full">
                   <video
                     ref={remoteVideoRef}
@@ -204,13 +181,13 @@ const OngoingCallUI = () => {
                   />
                 </CardContent>
               </Card>
-            </div>
-          </Draggable>
+            </Draggable>
+          </div>
         ) : (
           <div
             className={
               viewMode === "full"
-                ? "fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-6"
+                ? "fixed inset-0 bg-black/90 flex flex-col items-center justify-center p-6 z-[9998]"
                 : "flex flex-col items-center justify-center p-6"
             }
           >
