@@ -48,6 +48,29 @@ export const CallProvider = ({ children }) => {
   const debug = (...args) =>
     console.log("%c[Call Debug]", "color: cyan", ...args);
 
+  const logCall = ({
+    sender,
+    recipient,
+    type,
+    status,
+    startedAt,
+    endedAt,
+    duration = 0,
+  }) => {
+    const now = new Date();
+    socket.emit("store-call-log", {
+      sender,
+      recipient,
+      messageType: type,
+      callDetails: {
+        duration,
+        startedAt: startedAt || now,
+        endedAt: endedAt || now,
+        status,
+      },
+    });
+  };
+
   const getSafeUserMedia = async ({ video }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -126,53 +149,13 @@ export const CallProvider = ({ children }) => {
     };
   };
 
-  // const startCall = useCallback(
-  //   async (toUserId, type = "audio") => {
-  //     setIsLoading(true);
-  //     const stream = await getSafeUserMedia({ video: type === "video" });
-  //     if (!stream) return setIsLoading(false);
-
-  //     try {
-  //       initPeerConnection(toUserId);
-  //       setCallType(type);
-  //       setPeerId(toUserId);
-  //       localStream.current = stream;
-  //       callActive.current = true;
-  //       setInCall(true);
-
-  //       const tracks =
-  //         type === "video" ? stream.getTracks() : stream.getAudioTracks();
-  //       tracks.forEach((track) =>
-  //         peerConnection.current.addTrack(track, stream)
-  //       );
-
-  //       const offer = await peerConnection.current.createOffer();
-  //       await peerConnection.current.setLocalDescription(offer);
-
-  //       socket.emit("call-user", {
-  //         from: userInfo.id,
-  //         to: toUserId,
-  //         type,
-  //         offer,
-  //       });
-  //       debug("📞 Call offer sent");
-  //     } catch (err) {
-  //       console.error("❌ startCall failed:", err);
-  //       toast.error("Could not start the call.");
-  //       endCall();
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   },
-  //   [socket, userInfo, setIsLoading]
-  // );
-
   const continueStartCall = async (toUserId, type, stream) => {
     try {
       initPeerConnection(toUserId);
       setCallType(type);
       setPeerId(toUserId);
       localStream.current = stream;
+      localStream.current.activeStartTime = new Date(); // 🔥 Timestamp
       callActive.current = true;
       setInCall(true);
 
@@ -203,13 +186,17 @@ export const CallProvider = ({ children }) => {
   const startCall = useCallback(
     async (toUserId, type = "audio") => {
       setIsLoading(true);
-
-      // check availability first
       socket.emit(
         "check-user-availability",
         { to: toUserId },
         async (response) => {
           if (!response?.online) {
+            logCall({
+              sender: userInfo.id,
+              recipient: toUserId,
+              type,
+              status: "missed",
+            });
             toast.error("User is not available or offline.");
             setIsLoading(false);
             return;
@@ -239,6 +226,7 @@ export const CallProvider = ({ children }) => {
         setCallType(type);
         setPeerId(from);
         localStream.current = stream;
+        localStream.current.activeStartTime = new Date(); // 🔥 Timestamp
         callActive.current = true;
         setInCall(true);
 
@@ -255,10 +243,10 @@ export const CallProvider = ({ children }) => {
 
         const answer = await peerConnection.current.createAnswer();
         await peerConnection.current.setLocalDescription(answer);
-
         socket.emit("answer-call", { to: from, answer });
         setCallAccepted(true);
         clearTimeout(incomingCallTimeoutRef.current);
+        incomingCallTimeoutRef.current = null;
       } catch (err) {
         console.error("❌ answerCall failed:", err);
         toast.error("Call failed to connect.");
@@ -272,8 +260,22 @@ export const CallProvider = ({ children }) => {
 
   const endCall = useCallback(() => {
     if (!callActive.current && !incomingCall) return;
-    callActive.current = false;
 
+    const end = new Date();
+    const start = localStream.current?.activeStartTime || end;
+    const duration = callAccepted ? Math.floor((end - start) / 1000) : 0;
+
+    logCall({
+      sender: userInfo.id,
+      recipient: peerId || incomingCall?.from,
+      type: callType,
+      status: callAccepted ? "answered" : incomingCall ? "missed" : "rejected",
+      startedAt: start,
+      endedAt: end,
+      duration,
+    });
+
+    callActive.current = false;
     peerConnection.current?.close?.();
     peerConnection.current = null;
 
@@ -290,13 +292,12 @@ export const CallProvider = ({ children }) => {
     setCallType(null);
     setRemoteStreamState(null);
     clearTimeout(incomingCallTimeoutRef.current);
-    if (socket && userInfo?.id) {
-      socket.emit("end-call", {
-        to: peerId || incomingCall?.from,
-        from: userInfo.id,
-      });
-    }
-  }, [socket, userInfo, peerId, incomingCall]);
+
+    socket.emit("end-call", {
+      to: peerId || incomingCall?.from,
+      from: userInfo.id,
+    });
+  }, [socket, userInfo, peerId, incomingCall, callAccepted, callType]);
 
   const replaceVideoTrack = async (newTrack) => {
     try {
@@ -321,10 +322,17 @@ export const CallProvider = ({ children }) => {
         return;
       }
       setIncomingCall({ from, offer, type });
+
       incomingCallTimeoutRef.current = setTimeout(() => {
+        logCall({
+          sender: from,
+          recipient: userInfo.id,
+          type,
+          status: "missed",
+        });
+        setIncomingCall(null);
         toast.info("Call timed out.");
         endCall();
-        socket.emit("missed-call", { to: from });
       }, 30000);
     });
 
@@ -340,6 +348,20 @@ export const CallProvider = ({ children }) => {
         }
       } catch (err) {
         console.error("❌ Remote answer failed:", err);
+      }
+    });
+
+    socket.on("user-busy", ({ to }) => {
+      if (to === userInfo.id) {
+        logCall({
+          sender: userInfo.id,
+          recipient: peerId,
+          type: callType,
+          status: "missed",
+        });
+        toast.error("User is currently on another call.");
+        setIsLoading(false);
+        endCall();
       }
     });
 

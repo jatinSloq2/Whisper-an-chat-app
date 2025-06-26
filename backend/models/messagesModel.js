@@ -1,5 +1,18 @@
 import mongoose from "mongoose";
 
+const callDetailsSchema = new mongoose.Schema(
+  {
+    duration: Number,
+    status: {
+      type: String,
+      enum: ["missed", "rejected", "answered"],
+    },
+    startedAt: Date,
+    endedAt: Date,
+  },
+  { _id: false }
+);
+
 const messageSchema = new mongoose.Schema(
   {
     sender: {
@@ -13,7 +26,7 @@ const messageSchema = new mongoose.Schema(
     },
     messageType: {
       type: String,
-      enum: ["text", "file"],
+      enum: ["text", "file", "call", "video"],
       required: true,
     },
     content: {
@@ -26,6 +39,12 @@ const messageSchema = new mongoose.Schema(
       type: String,
       required: function () {
         return this.messageType === "file";
+      },
+    },
+    callDetails: {
+      type: callDetailsSchema,
+      required: function () {
+        return ["call", "video"].includes(this.messageType);
       },
     },
   },

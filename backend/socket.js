@@ -152,6 +152,45 @@ const setupSocket = (server) => {
       emitToUser(to, "call-ended");
       emitToUser(from, "call-ended");
     });
+    socket.on("store-call-log", async (payload) => {
+      const {
+        sender,
+        recipient,
+        messageType,
+        callDetails, 
+      } = payload;
+
+      try {
+        const message = await Message.create({
+          sender,
+          recipient,
+          messageType,
+          callDetails,
+        });
+
+        const fullMessage = await Message.findById(message._id)
+          .populate("sender", "id email firstName lastName image color")
+          .populate("recipient", "id email firstName lastName image color");
+
+        const customContact = await Contact.findOne({
+          owner: new mongoose.Types.ObjectId(recipient),
+          linkedUser: new mongoose.Types.ObjectId(sender),
+        });
+
+        const messageData = fullMessage.toObject();
+        if (customContact) {
+          messageData.recipient.contactName = customContact.contactName;
+        }
+
+        emitToUser(recipient, "receiveMessage", messageData);
+        emitToUser(sender, "receiveMessage", messageData);
+
+        console.log("📞 Call log saved successfully.");
+      } catch (err) {
+        console.error("❌ Failed to save call log:", err);
+      }
+    });
+
     socket.on("disconnect", () => disconnect(socket));
   });
 };
