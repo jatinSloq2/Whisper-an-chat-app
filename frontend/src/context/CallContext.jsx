@@ -45,9 +45,10 @@ export const CallProvider = ({ children }) => {
   const incomingCallTimeoutRef = useRef(null);
   const iceQueue = useRef([]);
   const callLogSent = useRef(false);
-
+  const callEndedByMe = useRef(false);
+  const DEBUG_MODE = true;
   const debug = (...args) =>
-    console.log("%c[Call Debug]", "color: cyan", ...args);
+    DEBUG_MODE && console.log("%c[Call Debug]", "color: cyan", ...args);
 
   const logCall = ({
     sender,
@@ -64,7 +65,12 @@ export const CallProvider = ({ children }) => {
     }
     callLogSent.current = true;
 
-    debug("📞 Logging call:", { status, sender, recipient });
+    debug("📝 Logging Call Once", {
+      sender,
+      recipient,
+      type,
+      status,
+    });
 
     const now = new Date();
     socket.emit("store-call-log", {
@@ -116,9 +122,9 @@ export const CallProvider = ({ children }) => {
   };
 
   const initPeerConnection = (toUserId) => {
-    peerConnection.current
-      ?.getSenders?.()
-      .forEach((s) => peerConnection.current.removeTrack(s));
+    // peerConnection.current
+    // ?.getSenders?.()
+    // .forEach((s) => peerConnection.current.removeTrack(s));
     peerConnection.current?.close?.();
 
     const pc = new RTCPeerConnection({
@@ -129,8 +135,9 @@ export const CallProvider = ({ children }) => {
     });
 
     peerConnection.current = pc;
-    remoteStream.current = new MediaStream();
-    setRemoteStreamState(remoteStream.current);
+    // remoteStream.current = new MediaStream();
+    // remoteStream.current = streams[0];
+    // setRemoteStreamState(remoteStream.current);
 
     pc.onicecandidate = ({ candidate }) => {
       if (candidate) {
@@ -140,12 +147,24 @@ export const CallProvider = ({ children }) => {
     };
 
     pc.ontrack = ({ streams }) => {
-      streams[0]
-        ?.getTracks()
-        .forEach((track) => remoteStream.current.addTrack(track));
-      setRemoteStreamState(
-        new MediaStream([...remoteStream.current.getTracks()])
-      );
+      remoteStream.current = streams[0];
+      setRemoteStreamState(streams[0]);
+
+      // streams[0]
+      //   ?.getTracks()
+      //   .forEach((track) => remoteStream.current.addTrack(track));
+      // setRemoteStreamState(
+      //   new MediaStream([...remoteStream.current.getTracks()])
+      // );
+    };
+
+    pc.onconnectionstatechange = () => {
+      const state = pc.connectionState;
+      debug("🔁 Connection state:", state);
+      if (["disconnected", "failed", "closed"].includes(state)) {
+        toast.error("Call disconnected.");
+        endCall();
+      }
     };
 
     pc.oniceconnectionstatechange = () => {
@@ -184,6 +203,7 @@ export const CallProvider = ({ children }) => {
 
       debug("📞 Call offer sent");
     } catch (err) {
+      if (stream) stream.getTracks().forEach((t) => t.stop());
       console.error("❌ startCall failed:", err);
       toast.error("Could not start the call.");
       endCall();
@@ -194,7 +214,9 @@ export const CallProvider = ({ children }) => {
 
   const startCall = useCallback(
     async (toUserId, type = "audio") => {
+      callEndedByMe.current = false;
       callLogSent.current = false;
+
       setIsLoading(true);
       socket.emit(
         "check-user-availability",
@@ -221,7 +243,9 @@ export const CallProvider = ({ children }) => {
 
   const answerCall = useCallback(
     async ({ from, offer, type }) => {
+      callEndedByMe.current = false;
       callLogSent.current = false;
+
       setIsLoading(true);
       const stream = await getSafeUserMedia({ video: type === "video" });
       if (!stream || !offer?.sdp) return setIsLoading(false);
@@ -253,6 +277,7 @@ export const CallProvider = ({ children }) => {
         clearTimeout(incomingCallTimeoutRef.current);
         incomingCallTimeoutRef.current = null;
       } catch (err) {
+        if (stream) stream.getTracks().forEach((t) => t.stop());
         console.error("❌ answerCall failed:", err);
         toast.error("Call failed to connect.");
         endCall();
@@ -265,6 +290,13 @@ export const CallProvider = ({ children }) => {
 
   const endCall = useCallback(() => {
     if (!callActive.current && !incomingCall) return;
+
+    if (!callEndedByMe.current) {
+      socket.emit("end-call", {
+        to: peerId || incomingCall?.from,
+        from: userInfo.id,
+      });
+    }
 
     const end = new Date();
     const start = localStream.current?.activeStartTime || end;
@@ -285,13 +317,11 @@ export const CallProvider = ({ children }) => {
         duration,
       });
     }
-    debug("🔚 Ending call with status:", {
-      status,
-      accepted: callAccepted,
-      incoming: !!incomingCall,
-    });
 
     callLogSent.current = true;
+    callActive.current = false;
+    callEndedByMe.current = false; // Reset for next call
+
     peerConnection.current?.close?.();
     peerConnection.current = null;
 
@@ -308,11 +338,6 @@ export const CallProvider = ({ children }) => {
     setCallType(null);
     setRemoteStreamState(null);
     clearTimeout(incomingCallTimeoutRef.current);
-
-    socket.emit("end-call", {
-      to: peerId || incomingCall?.from,
-      from: userInfo.id,
-    });
   }, [socket, userInfo, peerId, incomingCall, callAccepted, callType]);
 
   const replaceVideoTrack = async (newTrack) => {
@@ -330,6 +355,17 @@ export const CallProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    const handleUnload = () => {
+      if (callActive.current) {
+        callEndedByMe.current = true;
+        endCall();
+      }
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => window.removeEventListener("beforeunload", handleUnload);
+  }, [endCall]);
+
+  useEffect(() => {
     if (!socket) return;
 
     socket.on("incoming-call", ({ from, offer, type }) => {
@@ -340,6 +376,7 @@ export const CallProvider = ({ children }) => {
       setIncomingCall({ from, offer, type });
 
       incomingCallTimeoutRef.current = setTimeout(() => {
+        callEndedByMe.current = true;
         endCall();
         setIncomingCall(null);
         toast.info("Call timed out.");
@@ -371,7 +408,8 @@ export const CallProvider = ({ children }) => {
 
     socket.on("ice-candidate", async ({ candidate }) => {
       try {
-        if (peerConnection.current?.remoteDescription) {
+        // if (peerConnection.current?.remoteDescription) {
+        if (peerConnection.current?.signalingState === "stable") {
           await peerConnection.current.addIceCandidate(
             new RTCIceCandidate(candidate)
           );
@@ -385,11 +423,17 @@ export const CallProvider = ({ children }) => {
       }
     });
 
-    socket.on("call-ended", endCall);
+    socket.on("call-ended", () => {
+      debug("📞 Received remote call-ended");
+      toast.info("The other user has ended the call.");
+      callEndedByMe.current = true;
+      endCall();
+    });
 
     return () => {
       socket.off("incoming-call");
       socket.off("call-answered");
+      socket.off("user-busy");
       socket.off("ice-candidate");
       socket.off("call-ended");
     };
