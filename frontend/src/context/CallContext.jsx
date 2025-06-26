@@ -58,8 +58,13 @@ export const CallProvider = ({ children }) => {
     endedAt,
     duration = 0,
   }) => {
-    if (callLogSent.current) return;
+    if (callLogSent.current) {
+      debug("🚫 Duplicate log prevented");
+      return;
+    }
     callLogSent.current = true;
+
+    debug("📞 Logging call:", { status, sender, recipient });
 
     const now = new Date();
     socket.emit("store-call-log", {
@@ -196,12 +201,6 @@ export const CallProvider = ({ children }) => {
         { to: toUserId },
         async (response) => {
           if (!response?.online) {
-            logCall({
-              sender: userInfo.id,
-              recipient: toUserId,
-              type,
-              status: "missed",
-            });
             toast.error("User is not available or offline.");
             setIsLoading(false);
             return;
@@ -271,17 +270,28 @@ export const CallProvider = ({ children }) => {
     const start = localStream.current?.activeStartTime || end;
     const duration = callAccepted ? Math.floor((end - start) / 1000) : 0;
 
-    logCall({
-      sender: userInfo.id,
-      recipient: peerId || incomingCall?.from,
-      type: callType,
-      status: callAccepted ? "answered" : incomingCall ? "missed" : "rejected",
-      startedAt: start,
-      endedAt: end,
-      duration,
+    let status = "rejected";
+    if (callAccepted) status = "answered";
+    else if (incomingCall && !callAccepted) status = "missed";
+
+    if (!callLogSent.current) {
+      logCall({
+        sender: userInfo.id,
+        recipient: peerId || incomingCall?.from,
+        type: callType,
+        status,
+        startedAt: start,
+        endedAt: end,
+        duration,
+      });
+    }
+    debug("🔚 Ending call with status:", {
+      status,
+      accepted: callAccepted,
+      incoming: !!incomingCall,
     });
 
-    callActive.current = false;
+    callLogSent.current = true;
     peerConnection.current?.close?.();
     peerConnection.current = null;
 
@@ -330,16 +340,9 @@ export const CallProvider = ({ children }) => {
       setIncomingCall({ from, offer, type });
 
       incomingCallTimeoutRef.current = setTimeout(() => {
-        callLogSent.current = false;
-        logCall({
-          sender: from,
-          recipient: userInfo.id,
-          type,
-          status: "missed",
-        });
+        endCall();
         setIncomingCall(null);
         toast.info("Call timed out.");
-        endCall();
       }, 30000);
     });
 
@@ -360,15 +363,9 @@ export const CallProvider = ({ children }) => {
 
     socket.on("user-busy", ({ to }) => {
       if (to === userInfo.id) {
-        logCall({
-          sender: userInfo.id,
-          recipient: peerId,
-          type: callType,
-          status: "missed",
-        });
+        endCall();
         toast.error("User is currently on another call.");
         setIsLoading(false);
-        endCall();
       }
     });
 
