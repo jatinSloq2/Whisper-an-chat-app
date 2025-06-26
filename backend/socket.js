@@ -121,15 +121,18 @@ const setupSocket = (server) => {
     //-----------------------------------------------------------------
     socket.on("call-user", ({ to, offer, type, from }) => {
       if (!offer || !offer.type || !offer.sdp) {
-        io.to(socket.id).emit("call-failed", {
+        emitToUser(from, "call-failed", {
           to,
           reason: "Invalid offer",
         });
         return;
       }
 
-      // Only store if not already active
-      if (!activeCalls.has(from) && !activeCalls.has(to)) {
+      // Improved busy check:
+      const fromBusy = activeCalls.has(from);
+      const toBusy = activeCalls.has(to);
+
+      if (!fromBusy && !toBusy) {
         activeCalls.set(from, to);
         activeCalls.set(to, from);
         emitToUser(to, "incoming-call", { from, offer, type });
@@ -159,53 +162,48 @@ const setupSocket = (server) => {
     });
     socket.on("end-call", ({ to, from }) => {
       const peer = activeCalls.get(from);
-      if (peer !== to) {
-        console.log("⚠️ Ignoring unrelated end-call from", from);
+
+      // ❌ From user is not part of an active call — reject
+      if (!peer) {
+        console.warn("⚠️ No active call found for", from);
         return;
       }
 
-      console.log("🔴 Ending valid call between:", from, "<->", to);
+      // ✅ If the peer matches or the 'to' is the expected peer
+      if (peer === to) {
+        console.log("🔴 Valid end call from", from, "<->", to);
+        activeCalls.delete(from);
+        activeCalls.delete(to);
+        emitToUser(to, "call-ended", { from });
+        emitToUser(from, "call-ended", { to });
+      } else {
+        // ❌ Block malicious attempt by third user (e.g., User 3 trying to end 1 & 2)
+        console.warn("❌ Unauthorized end-call attempt from", from, "to", to);
+      }
+    });
+    socket.on("call-timeout", ({ from, to }) => {
       activeCalls.delete(from);
       activeCalls.delete(to);
-
       emitToUser(to, "call-ended", { from });
       emitToUser(from, "call-ended", { to });
     });
+
+    socket.on("user-busy", ({ from, to }) => {
+      activeCalls.delete(from);
+      activeCalls.delete(to);
+    });
     socket.on("store-call-log", async (payload) => {
-      console.log(payload)
-      const {
-        sender,
-        recipient,
-        messageType,
-        callDetails,
-      } = payload;
-
+      const { sender, recipient, messageType, callDetails, } = payload;
       try {
-        const message = await Message.create({
-          sender,
-          recipient,
-          messageType,
-          callDetails,
-        });
-
+        const message = await Message.create({ sender, recipient, messageType, callDetails, })
         const fullMessage = await Message.findById(message._id)
           .populate("sender", "id email firstName lastName image color")
           .populate("recipient", "id email firstName lastName image color");
-
-        const customContact = await Contact.findOne({
-          owner: new mongoose.Types.ObjectId(recipient),
-          linkedUser: new mongoose.Types.ObjectId(sender),
-        });
-
+        const customContact = await Contact.findOne({ owner: new mongoose.Types.ObjectId(recipient), linkedUser: new mongoose.Types.ObjectId(sender), });
         const messageData = fullMessage.toObject();
-        if (customContact) {
-          messageData.recipient.contactName = customContact.contactName;
-        }
-
+        if (customContact) messageData.recipient.contactName = customContact.contactName;
         emitToUser(recipient, "receiveMessage", messageData);
         emitToUser(sender, "receiveMessage", messageData);
-
-        console.log("📞 Call log saved successfully.");
       } catch (err) {
         console.error("❌ Failed to save call log:", err);
       }
@@ -213,14 +211,29 @@ const setupSocket = (server) => {
 
     socket.on("disconnect", () => {
       disconnect(socket);
-      for (const [user, peer] of activeCalls.entries()) {
-        if (userSocketMap.get(user)?.has(socket.id)) {
-          activeCalls.delete(user);
-          activeCalls.delete(peer);
-          emitToUser(peer, "call-ended", { from: user });
+      const logActiveCalls = () => {
+        console.log("📞 Active Calls:");
+        for (const [a, b] of activeCalls.entries()) {
+          console.log(`${a} <--> ${b}`);
+        }
+      };
+
+      for (const [userId, sockets] of userSocketMap.entries()) {
+        if (sockets.has(socket.id)) {
+          sockets.delete(socket.id);
+          if (sockets.size === 0) {
+            userSocketMap.delete(userId);
+
+            const peerId = activeCalls.get(userId);
+            if (peerId) {
+              activeCalls.delete(userId);
+              activeCalls.delete(peerId);
+              emitToUser(peerId, "call-ended", { from: userId });
+            }
+          }
         }
       }
-    });
+    })
   });
 };
 

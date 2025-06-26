@@ -248,16 +248,25 @@ export const CallProvider = ({ children }) => {
   );
 
   const endCall = useCallback(() => {
-    if (!callActive.current && !incomingCall) return;
+    const isIncoming = !!incomingCall;
+    const targetId = callAccepted
+      ? peerId
+      : isIncoming
+      ? incomingCall?.from
+      : null;
+
+    if (!targetId) {
+      debug("No valid peer to end call with.");
+      return;
+    }
+
     if (callEndedByMe.current) {
       debug("Call already ended by me. Skipping endCall.");
       return;
     }
-    debug("Ending call now...");
 
+    debug("Ending call now...");
     callEndedByMe.current = true;
-    const targetId = callAccepted ? peerId : incomingCall?.from;
-    if (!targetId) return debug("No valid peer to end call with.");
 
     socket.emit("end-call", {
       to: targetId,
@@ -269,9 +278,9 @@ export const CallProvider = ({ children }) => {
     const duration = callAccepted ? Math.floor((end - start) / 1000) : 0;
     const status = callAccepted
       ? "answered"
-      : incomingCall
+      : isIncoming
       ? "missed"
-      : "rejected";
+      : "rejected"; // important fix here for outgoing rejected case
 
     logCall({
       sender: userInfo.id,
@@ -283,8 +292,14 @@ export const CallProvider = ({ children }) => {
       duration,
     });
 
-    peerConnection.current?.close?.();
+    // Cleanup
+    try {
+      peerConnection.current?.close?.();
+    } catch (err) {
+      debug("Peer connection cleanup failed", err);
+    }
     peerConnection.current = null;
+
     localStream.current?.getTracks().forEach((t) => t.stop());
     remoteStream.current?.getTracks().forEach((t) => t.stop());
     localStream.current = null;
@@ -292,8 +307,9 @@ export const CallProvider = ({ children }) => {
 
     callLogSent.current = true;
     callActive.current = false;
-    callEndedByMe.current = false;
+    callEndedByMe.current = false; // reset so next call can set again
 
+    // State resets
     setInCall(false);
     setIncomingCall(null);
     setPeerId(null);
@@ -346,7 +362,7 @@ export const CallProvider = ({ children }) => {
         setPeerId(null);
         toast.info("Call timed out.");
 
-        socket.emit("call-timeout", {
+        socket.emit("end-call", {
           to: from,
           from: userInfo.id,
         });
