@@ -1,10 +1,23 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import { useSocket } from "@/context/socketContext";
 import { useAppStore } from "@/store";
 import { useUI } from "./UIcontext";
 import { toast } from "sonner";
 
 const CallContext = createContext();
+
+const STUN_TURN_SERVERS = [
+  { urls: "stun:stun.l.google.com:19302" },
+  {
+    urls: [
+      "turn:global.relay.metered.ca:80",
+      "turn:global.relay.metered.ca:443",
+      "turn:global.relay.metered.ca:443?transport=tcp"
+    ],
+    username: "openrelayproject",
+    credential: "openrelayproject"
+  }
+];
 
 export const CallProvider = ({ children }) => {
   const socket = useSocket();
@@ -26,40 +39,19 @@ export const CallProvider = ({ children }) => {
 
   const debug = (...args) => console.log("%c[Call Debug]", "color: cyan", ...args);
 
-  const getIceServers = async () => [
-    { urls: "stun:stun.l.google.com:19302" },
-    {
-      urls: [
-        "turn:global.relay.metered.ca:80",
-        "turn:global.relay.metered.ca:443",
-        "turn:global.relay.metered.ca:443?transport=tcp",
-      ],
-      username: "openrelayproject",
-      credential: "openrelayproject",
-    },
-  ];
-
-  const validateAudioTracks = (stream) => {
-    const audioTracks = stream.getAudioTracks();
-    if (audioTracks.length === 0) {
-      toast.error("No audio input detected.");
-    } else {
-      debug("🎧 Audio settings:", audioTracks[0].getSettings());
-    }
-  };
-
-  const getSafeUserMedia = async (constraints) => {
+  const getSafeUserMedia = async ({ video }) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true,
+          autoGainControl: true
         },
-        video: constraints.video || false,
+        video
       });
-      debug("🎤 Local Tracks:", stream.getTracks().map((t) => t.kind));
-      validateAudioTracks(stream);
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length === 0) toast.error("No audio input detected.");
+      else debug("🎧 Audio settings:", audioTracks[0].getSettings());
       return stream;
     } catch (err) {
       toast.error("Permission denied or no media device.");
@@ -80,17 +72,15 @@ export const CallProvider = ({ children }) => {
     iceQueue.current = [];
   };
 
-  const initPeerConnection = (toUserId, iceServers) => {
-    if (peerConnection.current) {
-      peerConnection.current.getSenders().forEach((s) => peerConnection.current.removeTrack(s));
-      peerConnection.current.close();
-    }
+  const initPeerConnection = (toUserId) => {
+    peerConnection.current?.getSenders?.().forEach((s) => peerConnection.current.removeTrack(s));
+    peerConnection.current?.close?.();
 
     const pc = new RTCPeerConnection({
-      iceServers,
+      iceServers: STUN_TURN_SERVERS,
       iceTransportPolicy: "all",
       bundlePolicy: "max-bundle",
-      sdpSemantics: "unified-plan",
+      sdpSemantics: "unified-plan"
     });
 
     peerConnection.current = pc;
@@ -105,8 +95,7 @@ export const CallProvider = ({ children }) => {
     };
 
     pc.ontrack = ({ streams }) => {
-      debug("📥 Remote tracks:", streams[0]?.getTracks().map((t) => t.kind));
-      streams[0].getTracks().forEach((track) => remoteStream.current.addTrack(track));
+      streams[0]?.getTracks().forEach((track) => remoteStream.current.addTrack(track));
       setRemoteStreamState(new MediaStream([...remoteStream.current.getTracks()]));
     };
 
@@ -120,15 +109,13 @@ export const CallProvider = ({ children }) => {
     };
   };
 
-  const startCall = async (toUserId, type = "audio") => {
+  const startCall = useCallback(async (toUserId, type = "audio") => {
     setIsLoading(true);
     const stream = await getSafeUserMedia({ video: type === "video" });
     if (!stream) return setIsLoading(false);
 
     try {
-      const iceServers = await getIceServers();
-      initPeerConnection(toUserId, iceServers);
-
+      initPeerConnection(toUserId);
       setCallType(type);
       setPeerId(toUserId);
       localStream.current = stream;
@@ -141,13 +128,7 @@ export const CallProvider = ({ children }) => {
       const offer = await peerConnection.current.createOffer();
       await peerConnection.current.setLocalDescription(offer);
 
-      socket.emit("call-user", {
-        from: userInfo.id,
-        to: toUserId,
-        type,
-        offer,
-      });
-
+      socket.emit("call-user", { from: userInfo.id, to: toUserId, type, offer });
       debug("📞 Call offer sent");
     } catch (err) {
       console.error("❌ startCall failed:", err);
@@ -156,17 +137,15 @@ export const CallProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [socket, userInfo, setIsLoading]);
 
-  const answerCall = async ({ from, offer, type }) => {
+  const answerCall = useCallback(async ({ from, offer, type }) => {
     setIsLoading(true);
     const stream = await getSafeUserMedia({ video: type === "video" });
     if (!stream || !offer?.sdp) return setIsLoading(false);
 
     try {
-      const iceServers = await getIceServers();
-      initPeerConnection(from, iceServers);
-
+      initPeerConnection(from);
       setCallType(type);
       setPeerId(from);
       localStream.current = stream;
@@ -182,13 +161,8 @@ export const CallProvider = ({ children }) => {
       const answer = await peerConnection.current.createAnswer();
       await peerConnection.current.setLocalDescription(answer);
 
-      socket.emit("answer-call", {
-        to: from,
-        answer: peerConnection.current.localDescription,
-      });
-
+      socket.emit("answer-call", { to: from, answer });
       setCallAccepted(true);
-      debug("✅ Call answered");
     } catch (err) {
       console.error("❌ answerCall failed:", err);
       toast.error("Call failed to connect.");
@@ -196,13 +170,13 @@ export const CallProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [socket, userInfo, setIsLoading]);
 
-  const endCall = () => {
+  const endCall = useCallback(() => {
     if (!callActive.current && !incomingCall) return;
-
     callActive.current = false;
-    peerConnection.current?.close();
+
+    peerConnection.current?.close?.();
     peerConnection.current = null;
 
     localStream.current?.getTracks().forEach((t) => t.stop());
@@ -221,14 +195,14 @@ export const CallProvider = ({ children }) => {
     if (socket && userInfo?.id) {
       socket.emit("end-call", {
         to: peerId || incomingCall?.from,
-        from: userInfo.id,
+        from: userInfo.id
       });
     }
-  };
+  }, [socket, userInfo, peerId, incomingCall]);
 
   const replaceVideoTrack = async (newTrack) => {
     try {
-      const sender = peerConnection.current?.getSenders().find((s) => s.track?.kind === "video");
+      const sender = peerConnection.current?.getSenders()?.find((s) => s.track?.kind === "video");
       if (sender) {
         await sender.replaceTrack(newTrack);
         debug("🔄 Video track replaced");
@@ -284,7 +258,7 @@ export const CallProvider = ({ children }) => {
       socket.off("ice-candidate");
       socket.off("call-ended");
     };
-  }, [socket]);
+  }, [socket, inCall, endCall]);
 
   return (
     <CallContext.Provider
@@ -299,7 +273,7 @@ export const CallProvider = ({ children }) => {
         callType,
         callAccepted,
         remoteStreamState,
-        replaceVideoTrack,
+        replaceVideoTrack
       }}
     >
       {children}
