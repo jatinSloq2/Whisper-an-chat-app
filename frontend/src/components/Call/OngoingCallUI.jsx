@@ -1,11 +1,16 @@
+import MediaControlButton from "@/components/Call/MediaControlButton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { useCall } from "@/context/CallContext";
 import { AnimatePresence, motion } from "framer-motion";
-import { SwitchCamera } from "lucide-react";
+import { SwitchCamera, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
-  MdOutlineCallEnd,
-  MdMicOff,
   MdMic,
+  MdMicOff,
+  MdOutlineCallEnd,
   MdVideocam,
   MdVideocamOff,
 } from "react-icons/md";
@@ -37,7 +42,6 @@ const OngoingCallUI = () => {
 
   const isVideoCall = callType === "video";
 
-  // Reset on call end
   useEffect(() => {
     if (!inCall) {
       setCallStartTime(null);
@@ -50,14 +54,12 @@ const OngoingCallUI = () => {
     }
   }, [inCall]);
 
-  // Start call timer
   useEffect(() => {
     if (inCall && callAccepted && !callStartTime) {
       setCallStartTime(Date.now());
     }
   }, [inCall, callAccepted, callStartTime]);
 
-  // Timer display
   useEffect(() => {
     if (!callStartTime) return;
     const interval = setInterval(() => {
@@ -69,18 +71,13 @@ const OngoingCallUI = () => {
     return () => clearInterval(interval);
   }, [callStartTime]);
 
-  // Attach local stream
   useEffect(() => {
     if (localRef.current && localStream?.current && !localPlayedRef.current) {
       localRef.current.srcObject = localStream.current;
-      localRef.current
-        .play()
-        .then(() => (localPlayedRef.current = true))
-        .catch((e) => console.warn("🔇 Local video autoplay blocked:", e.message));
+      localRef.current.play().then(() => (localPlayedRef.current = true)).catch((e) => console.warn("🔇 Local video autoplay blocked:", e.message));
     }
   }, [localStream]);
 
-  // Attach remote stream
   useEffect(() => {
     if (!remoteStreamState || remotePlayedRef.current) return;
 
@@ -97,7 +94,6 @@ const OngoingCallUI = () => {
     remotePlayedRef.current = true;
   }, [remoteStreamState]);
 
-  // Toggle mic
   const toggleMute = () => {
     const audioTrack = localStream?.current?.getAudioTracks()?.[0];
     if (audioTrack) {
@@ -106,7 +102,6 @@ const OngoingCallUI = () => {
     }
   };
 
-  // Toggle camera
   const toggleCamera = () => {
     const videoTrack = localStream?.current?.getVideoTracks()?.[0];
     if (videoTrack) {
@@ -115,7 +110,6 @@ const OngoingCallUI = () => {
     }
   };
 
-  // Switch front/back camera
   const switchCamera = async () => {
     try {
       const oldTrack = localStream?.current?.getVideoTracks()?.[0];
@@ -141,6 +135,12 @@ const OngoingCallUI = () => {
     }
   };
 
+  const resumeMedia = () => {
+    remoteVideoRef.current?.play().catch(console.warn);
+    remoteAudioRef.current?.play().catch(console.warn);
+    setPlayBlocked(false);
+  };
+
   if (!inCall) return null;
 
   return (
@@ -153,7 +153,6 @@ const OngoingCallUI = () => {
         transition={{ type: "spring", stiffness: 180, damping: 18 }}
         className="fixed inset-0 z-[9999] bg-black/90 text-white flex flex-col items-center justify-center p-6"
       >
-        {/* Call Info */}
         <div className="mb-4 text-center">
           <p className="text-sm text-gray-300">
             {isVideoCall ? "Video Call" : "Audio Call"}
@@ -167,23 +166,13 @@ const OngoingCallUI = () => {
           )}
         </div>
 
-        {/* Media UI */}
         {isVideoCall ? (
-          <div className="relative w-full max-w-xl h-[60vh] rounded-xl overflow-hidden border border-zinc-700 shadow-2xl bg-zinc-900">
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover bg-black"
-            />
-            <video
-              ref={localRef}
-              autoPlay
-              muted
-              playsInline
-              className="absolute bottom-4 right-4 w-28 h-20 rounded-md shadow-lg border border-white object-cover bg-zinc-800"
-            />
-          </div>
+          <Card className="w-full max-w-xl h-[60vh] overflow-hidden bg-zinc-900 border border-zinc-700 shadow-2xl relative">
+            <CardContent className="p-0 h-full">
+              <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover bg-black" />
+              <video ref={localRef} autoPlay muted playsInline className="absolute bottom-4 right-4 w-28 h-20 rounded-md shadow-lg border border-white object-cover bg-zinc-800" />
+            </CardContent>
+          </Card>
         ) : (
           <div className="flex flex-col items-center justify-center mb-6">
             <div className="w-24 h-24 rounded-full bg-zinc-700 flex items-center justify-center text-5xl shadow-xl">
@@ -195,66 +184,55 @@ const OngoingCallUI = () => {
           </div>
         )}
 
-        {/* Audio Stream */}
         <audio ref={remoteAudioRef} autoPlay hidden />
 
-        {/* Resume media if blocked */}
         {playBlocked && (
-          <button
-            onClick={() => {
-              remoteVideoRef.current?.play().catch(console.warn);
-              remoteAudioRef.current?.play().catch(console.warn);
-              setPlayBlocked(false);
-            }}
-            className="mt-4 px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-700 text-white"
-          >
-            🔊 Tap to resume media
-          </button>
+          <div className="mt-4 w-full max-w-sm">
+            <Alert variant="default" className="bg-emerald-700/10 border-emerald-600">
+              <Volume2 className="h-4 w-4" />
+              <AlertTitle>Media Paused</AlertTitle>
+              <AlertDescription>
+                <Button onClick={resumeMedia} className="mt-2">
+                  🔊 Tap to resume media
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
         )}
 
-        {/* Controls */}
-        <div className="mt-6 flex items-center gap-6">
-          {/* Mic */}
-          <button
-            onClick={toggleMute}
-            className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
-          >
-            {muted ? <MdMicOff className="text-red-500" /> : <MdMic />}
-          </button>
+        <TooltipProvider>
+          <div className="mt-6 flex items-center gap-4 flex-wrap justify-center">
+            <MediaControlButton
+              onClick={toggleMute}
+              icon={muted ? <MdMicOff className="text-red-500" /> : <MdMic />}
+              label={muted ? "Unmute" : "Mute"}
+            />
 
-          {/* End */}
-          <button
-            onClick={endCall}
-            className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 shadow-lg flex items-center justify-center text-2xl transition"
-            aria-label="End Call"
-          >
-            <MdOutlineCallEnd />
-          </button>
+            <MediaControlButton
+              onClick={endCall}
+              icon={<MdOutlineCallEnd />}
+              label="End Call"
+              className="bg-red-600 hover:bg-red-700 text-white w-16 h-16 text-2xl"
+              variant="default"
+            />
 
-          {/* Camera Toggle */}
-          {isVideoCall && (
-            <>
-              <button
-                onClick={toggleCamera}
-                className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
-              >
-                {cameraOff ? (
-                  <MdVideocamOff className="text-red-500" />
-                ) : (
-                  <MdVideocam />
-                )}
-              </button>
+            {isVideoCall && (
+              <>
+                <MediaControlButton
+                  onClick={toggleCamera}
+                  icon={cameraOff ? <MdVideocamOff className="text-red-500" /> : <MdVideocam />}
+                  label={cameraOff ? "Turn Camera On" : "Turn Camera Off"}
+                />
 
-              <button
-                onClick={switchCamera}
-                className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
-                title="Switch Camera"
-              >
-                <SwitchCamera />
-              </button>
-            </>
-          )}
-        </div>
+                <MediaControlButton
+                  onClick={switchCamera}
+                  icon={<SwitchCamera />}
+                  label="Switch Camera"
+                />
+              </>
+            )}
+          </div>
+        </TooltipProvider>
       </motion.div>
     </AnimatePresence>
   );
