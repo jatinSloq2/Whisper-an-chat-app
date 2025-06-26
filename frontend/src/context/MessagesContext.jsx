@@ -7,7 +7,7 @@ import { useUI } from "./UIcontext";
 const MessagesContext = createContext();
 
 export const MessagesProvider = ({ children }) => {
-  const {setIsLoading} = useUI()
+  const { setIsLoading } = useUI();
   const [messages, setMessages] = useState([]);
   const [chatType, setChatType] = useState(undefined);
   const [chatData, setChatData] = useState(undefined);
@@ -30,6 +30,7 @@ export const MessagesProvider = ({ children }) => {
 
       if (res.data.messages) {
         setMessages(res.data.messages);
+        console.log(res);
       }
     } catch (err) {
       setMessages([]);
@@ -41,15 +42,22 @@ export const MessagesProvider = ({ children }) => {
   };
 
   const addMessage = (message) => {
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        ...message,
-        recipient:
-          chatType === "group" ? message.recipient : message.recipient._id,
-        sender: chatType === "group" ? message.sender : message.sender._id,
-      },
-    ]);
+    const isCall =
+      message.messageType === "audio" || message.messageType === "video";
+
+    const formattedMessage = {
+      ...message,
+      recipient:
+        chatType === "group" ? message.recipient : message.recipient._id,
+      sender: chatType === "group" ? message.sender : message.sender._id,
+      isCall,
+      callStatus: isCall ? message.callDetails?.status : null,
+      callDuration: isCall ? message.callDetails?.duration : null,
+      callStartTime: isCall ? message.callDetails?.startedAt : null,
+      callEndTime: isCall ? message.callDetails?.endedAt : null,
+    };
+
+    setMessages((prevMessages) => [...prevMessages, formattedMessage]);
   };
 
   const value = useMemo(

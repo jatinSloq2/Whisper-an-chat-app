@@ -44,6 +44,7 @@ export const CallProvider = ({ children }) => {
   const callActive = useRef(false);
   const incomingCallTimeoutRef = useRef(null);
   const iceQueue = useRef([]);
+  const callLogSent = useRef(false);
 
   const debug = (...args) =>
     console.log("%c[Call Debug]", "color: cyan", ...args);
@@ -57,6 +58,9 @@ export const CallProvider = ({ children }) => {
     endedAt,
     duration = 0,
   }) => {
+    if (callLogSent.current) return;
+    callLogSent.current = true;
+
     const now = new Date();
     socket.emit("store-call-log", {
       sender,
@@ -185,6 +189,7 @@ export const CallProvider = ({ children }) => {
 
   const startCall = useCallback(
     async (toUserId, type = "audio") => {
+      callLogSent.current = false;
       setIsLoading(true);
       socket.emit(
         "check-user-availability",
@@ -217,6 +222,7 @@ export const CallProvider = ({ children }) => {
 
   const answerCall = useCallback(
     async ({ from, offer, type }) => {
+      callLogSent.current = false;
       setIsLoading(true);
       const stream = await getSafeUserMedia({ video: type === "video" });
       if (!stream || !offer?.sdp) return setIsLoading(false);
@@ -324,6 +330,7 @@ export const CallProvider = ({ children }) => {
       setIncomingCall({ from, offer, type });
 
       incomingCallTimeoutRef.current = setTimeout(() => {
+        callLogSent.current = false;
         logCall({
           sender: from,
           recipient: userInfo.id,

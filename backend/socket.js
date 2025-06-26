@@ -153,11 +153,12 @@ const setupSocket = (server) => {
       emitToUser(from, "call-ended");
     });
     socket.on("store-call-log", async (payload) => {
+      console.log(payload)
       const {
         sender,
         recipient,
         messageType,
-        callDetails, 
+        callDetails,
       } = payload;
 
       try {

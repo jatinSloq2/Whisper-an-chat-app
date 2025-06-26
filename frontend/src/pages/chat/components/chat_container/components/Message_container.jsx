@@ -10,6 +10,7 @@ import { IoMdArrowRoundDown } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
 import { MdFolderZip } from "react-icons/md";
 import { toast } from "sonner";
+import CallMessageUI from "./CallMessage";
 const Message_container = () => {
   const scrollRef = useRef();
 
@@ -140,7 +141,17 @@ const Message_container = () => {
                 )}
               </>
             )}
+
+            {["audio", "video"].includes(message.messageType) && (
+              <CallMessageUI
+                type={message.messageType}
+                status={message.callDetails?.status}
+                duration={message.callDetails?.duration}
+                startedAt={message.callDetails?.startedAt}
+              />
+            )}
           </div>
+
           <div
             className={`text-xs mt-1 ${
               isSender ? "text-right text-gray-400" : "text-left text-gray-500"
@@ -220,6 +231,15 @@ const Message_container = () => {
                   </div>
                 )}
               </>
+            )}
+
+            {["audio", "video"].includes(message.messageType) && (
+              <CallMessageUI
+                type={message.messageType}
+                status={message.callDetails?.status}
+                duration={message.callDetails?.duration}
+                startedAt={message.callDetails?.startedAt}
+              />
             )}
           </div>
 
