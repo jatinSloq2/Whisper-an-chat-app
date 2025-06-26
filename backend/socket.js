@@ -27,6 +27,7 @@ const setupSocket = (server) => {
   });
 
   const userSocketMap = new Map();
+  const activeCalls = new Map();
 
   const emitToUser = (userId, event, data) => {
     const sockets = userSocketMap.get(userId);
@@ -126,8 +127,16 @@ const setupSocket = (server) => {
         });
         return;
       }
-      emitToUser(to, "incoming-call", { from, offer, type });
-      emitToUser(from, "call-init-sent", { to });
+
+      // Only store if not already active
+      if (!activeCalls.has(from) && !activeCalls.has(to)) {
+        activeCalls.set(from, to);
+        activeCalls.set(to, from);
+        emitToUser(to, "incoming-call", { from, offer, type });
+        emitToUser(from, "call-init-sent", { to });
+      } else {
+        emitToUser(from, "user-busy", { to });
+      }
     });
     socket.on("check-user-availability", ({ to }, callback) => {
       const socketSet = userSocketMap.get(to);
@@ -149,9 +158,18 @@ const setupSocket = (server) => {
       }
     });
     socket.on("end-call", ({ to, from }) => {
-      console.log("🔴 Ending call for:", { to, from });
-      emitToUser(to, "call-ended");
-      emitToUser(from, "call-ended");
+      const peer = activeCalls.get(from);
+      if (peer !== to) {
+        console.log("⚠️ Ignoring unrelated end-call from", from);
+        return;
+      }
+
+      console.log("🔴 Ending valid call between:", from, "<->", to);
+      activeCalls.delete(from);
+      activeCalls.delete(to);
+
+      emitToUser(to, "call-ended", { from });
+      emitToUser(from, "call-ended", { to });
     });
     socket.on("store-call-log", async (payload) => {
       console.log(payload)
@@ -193,7 +211,16 @@ const setupSocket = (server) => {
       }
     });
 
-    socket.on("disconnect", () => disconnect(socket));
+    socket.on("disconnect", () => {
+      disconnect(socket);
+      for (const [user, peer] of activeCalls.entries()) {
+        if (userSocketMap.get(user)?.has(socket.id)) {
+          activeCalls.delete(user);
+          activeCalls.delete(peer);
+          emitToUser(peer, "call-ended", { from: user });
+        }
+      }
+    });
   });
 };
 

@@ -172,6 +172,9 @@ export const CallProvider = ({ children }) => {
         callEndedByMe.current = true;
         endCall();
         setIncomingCall(null);
+        setCallAccepted(false);
+        setInCall(false);
+        setPeerId(null);
         toast.info("Call timed out.");
       }, CALL_TIMEOUT);
     } catch (err) {
@@ -253,8 +256,11 @@ export const CallProvider = ({ children }) => {
     debug("Ending call now...");
 
     callEndedByMe.current = true;
+    const targetId = callAccepted ? peerId : incomingCall?.from;
+    if (!targetId) return debug("No valid peer to end call with.");
+
     socket.emit("end-call", {
-      to: peerId || incomingCall?.from,
+      to: targetId,
       from: userInfo.id,
     });
 
@@ -323,12 +329,21 @@ export const CallProvider = ({ children }) => {
     if (!socket) return;
 
     socket.on("incoming-call", ({ from, offer, type }) => {
-      if (inCall) return socket.emit("user-busy", { to: from });
+      if (inCall || incomingCall || callActive.current) {
+        debug("❌ Busy - rejecting call from", from);
+        socket.emit("user-busy", { to: from });
+        return;
+      }
+
       setIncomingCall({ from, offer, type });
+
       incomingCallTimeoutRef.current = setTimeout(() => {
         callEndedByMe.current = true;
         endCall();
         setIncomingCall(null);
+        setCallAccepted(false);
+        setInCall(false);
+        setPeerId(null);
         toast.info("Call timed out.");
 
         socket.emit("call-timeout", {
@@ -347,6 +362,7 @@ export const CallProvider = ({ children }) => {
           );
           await applyQueuedCandidates();
           setCallAccepted(true);
+          clearTimeout(incomingCallTimeoutRef.current);
         }
       } catch (err) {
         handleError(err, "Remote answer failed");
@@ -355,7 +371,13 @@ export const CallProvider = ({ children }) => {
 
     socket.on("user-busy", ({ to }) => {
       if (to === userInfo.id) {
+        debug("📞 Received busy response from callee");
+        callEndedByMe.current = true;
         endCall();
+        setTimeout(() => {
+          if (!callAccepted) endCall(); // Just in case it lingers
+        }, 1000);
+
         toast.error("User is currently on another call.");
         setIsLoading(false);
       }
@@ -375,7 +397,12 @@ export const CallProvider = ({ children }) => {
       }
     });
 
-    socket.on("call-ended", () => {
+    socket.on("call-ended", ({ from }) => {
+      if (from !== peerId) {
+        debug("❌ Ignoring call-ended from unrelated peer:", from);
+        return;
+      }
+
       callEndedByMe.current = false;
       endCall();
       toast.info("The other user has ended the call.");
