@@ -149,6 +149,7 @@ const setupSocket = (server) => {
       }
     });
     socket.on("end-call", ({ to, from }) => {
+      console.log("🔴 Ending call for:", { to, from });
       emitToUser(to, "call-ended");
       emitToUser(from, "call-ended");
     });
