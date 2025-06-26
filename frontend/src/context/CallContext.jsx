@@ -79,7 +79,7 @@ export const CallProvider = ({ children }) => {
     socket.emit("store-call-log", {
       sender,
       recipient,
-      messageType: type || "audio",
+      messageType: callType || "audio",
       callDetails: { duration, startedAt, endedAt, status },
     });
   };
