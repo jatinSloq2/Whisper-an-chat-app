@@ -35,6 +35,9 @@ const OngoingCallUI = () => {
   const remotePlayedRef = useRef(false);
   const localPlayedRef = useRef(false);
 
+  const isVideoCall = callType === "video";
+
+  // Reset on call end
   useEffect(() => {
     if (!inCall) {
       setCallStartTime(null);
@@ -47,108 +50,92 @@ const OngoingCallUI = () => {
     }
   }, [inCall]);
 
+  // Start call timer
   useEffect(() => {
     if (inCall && callAccepted && !callStartTime) {
       setCallStartTime(Date.now());
     }
   }, [inCall, callAccepted, callStartTime]);
 
-  useEffect(() => {
-    if (localRef.current && localStream?.current && !localPlayedRef.current) {
-      localRef.current.srcObject = localStream.current;
-      localRef.current
-        .play()
-        .then(() => {
-          localPlayedRef.current = true;
-        })
-        .catch((e) =>
-          console.warn("🔇 Local video autoplay blocked:", e.message)
-        );
-    }
-  }, [localStream]);
-
-  useEffect(() => {
-    if (!remoteStreamState || remotePlayedRef.current) return;
-
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = remoteStreamState;
-      remoteVideoRef.current.play().catch((err) => {
-        console.warn("🔇 Remote video autoplay blocked:", err.message);
-        setPlayBlocked(true);
-      });
-    }
-
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.srcObject = remoteStreamState;
-      remoteAudioRef.current.play().catch((err) => {
-        console.warn("🔇 Remote audio autoplay blocked:", err.message);
-        setPlayBlocked(true);
-      });
-    }
-    console.log("🎧 Attaching remote stream to audio", remoteStreamState);
-    console.log("📹 Remote videoRef:", remoteVideoRef.current);
-    console.log("🔊 Remote audioRef:", remoteAudioRef.current);
-    remotePlayedRef.current = true;
-  }, [remoteStreamState]);
-  console.log(remoteStreamState?.getAudioTracks());
+  // Timer display
   useEffect(() => {
     if (!callStartTime) return;
-
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
       const minutes = String(Math.floor(elapsed / 60)).padStart(2, "0");
       const seconds = String(elapsed % 60).padStart(2, "0");
       setDuration(`${minutes}:${seconds}`);
     }, 1000);
-
     return () => clearInterval(interval);
   }, [callStartTime]);
 
-  const isVideoCall = callType === "video";
+  // Attach local stream
+  useEffect(() => {
+    if (localRef.current && localStream?.current && !localPlayedRef.current) {
+      localRef.current.srcObject = localStream.current;
+      localRef.current
+        .play()
+        .then(() => (localPlayedRef.current = true))
+        .catch((e) => console.warn("🔇 Local video autoplay blocked:", e.message));
+    }
+  }, [localStream]);
 
+  // Attach remote stream
+  useEffect(() => {
+    if (!remoteStreamState || remotePlayedRef.current) return;
+
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamState;
+      remoteVideoRef.current.play().catch(() => setPlayBlocked(true));
+    }
+
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = remoteStreamState;
+      remoteAudioRef.current.play().catch(() => setPlayBlocked(true));
+    }
+
+    remotePlayedRef.current = true;
+  }, [remoteStreamState]);
+
+  // Toggle mic
   const toggleMute = () => {
-    const audioTrack = localStream?.current
-      ?.getAudioTracks()
-      ?.find((t) => t.kind === "audio");
+    const audioTrack = localStream?.current?.getAudioTracks()?.[0];
     if (audioTrack) {
       audioTrack.enabled = !audioTrack.enabled;
       setMuted(!audioTrack.enabled);
     }
   };
 
+  // Toggle camera
   const toggleCamera = () => {
-    const videoTrack = localStream?.current
-      ?.getVideoTracks()
-      ?.find((t) => t.kind === "video");
+    const videoTrack = localStream?.current?.getVideoTracks()?.[0];
     if (videoTrack) {
       videoTrack.enabled = !videoTrack.enabled;
       setCameraOff(!videoTrack.enabled);
     }
   };
 
+  // Switch front/back camera
   const switchCamera = async () => {
     try {
-      const videoTrack = localStream?.current?.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.stop(); // Stop current video track
+      const oldTrack = localStream?.current?.getVideoTracks()?.[0];
+      if (!oldTrack) return;
 
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facingMode === "user" ? "environment" : "user" },
-          audio: false, // only video needed
-        });
+      oldTrack.stop();
 
-        const newVideoTrack = newStream.getVideoTracks()[0];
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: facingMode === "user" ? "environment" : "user" },
+        audio: false,
+      });
 
-        // Replace in UI stream
-        localStream.current.removeTrack(videoTrack);
-        localStream.current.addTrack(newVideoTrack);
-        localRef.current.srcObject = localStream.current;
+      const newVideoTrack = newStream.getVideoTracks()[0];
 
-        // Replace in peer connection
-        await replaceVideoTrack(newVideoTrack);
+      localStream.current.removeTrack(oldTrack);
+      localStream.current.addTrack(newVideoTrack);
+      localRef.current.srcObject = localStream.current;
 
-        setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
-      }
+      await replaceVideoTrack(newVideoTrack);
+      setFacingMode((prev) => (prev === "user" ? "environment" : "user"));
     } catch (err) {
       console.error("Camera switch failed:", err);
     }
@@ -166,13 +153,14 @@ const OngoingCallUI = () => {
         transition={{ type: "spring", stiffness: 180, damping: 18 }}
         className="fixed inset-0 z-[9999] bg-black/90 text-white flex flex-col items-center justify-center p-6"
       >
+        {/* Call Info */}
         <div className="mb-4 text-center">
           <p className="text-sm text-gray-300">
             {isVideoCall ? "Video Call" : "Audio Call"}
           </p>
           {!callAccepted ? (
             <div className="flex items-center justify-center gap-2 mt-2 text-yellow-400 font-semibold animate-pulse">
-              <span>🔔 Ringing...</span>
+              🔔 Ringing...
             </div>
           ) : (
             <p className="text-sm text-gray-400 mt-2">{duration}</p>
@@ -207,17 +195,18 @@ const OngoingCallUI = () => {
           </div>
         )}
 
+        {/* Audio Stream */}
         <audio ref={remoteAudioRef} autoPlay hidden />
 
-        {/* Manual resume for autoplay-block */}
+        {/* Resume media if blocked */}
         {playBlocked && (
           <button
-            className="mt-4 px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-700 text-white"
             onClick={() => {
               remoteVideoRef.current?.play().catch(console.warn);
               remoteAudioRef.current?.play().catch(console.warn);
               setPlayBlocked(false);
             }}
+            className="mt-4 px-4 py-2 bg-emerald-600 rounded-md hover:bg-emerald-700 text-white"
           >
             🔊 Tap to resume media
           </button>
@@ -225,7 +214,7 @@ const OngoingCallUI = () => {
 
         {/* Controls */}
         <div className="mt-6 flex items-center gap-6">
-          {/* Mic toggle */}
+          {/* Mic */}
           <button
             onClick={toggleMute}
             className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
@@ -233,7 +222,7 @@ const OngoingCallUI = () => {
             {muted ? <MdMicOff className="text-red-500" /> : <MdMic />}
           </button>
 
-          {/* End call */}
+          {/* End */}
           <button
             onClick={endCall}
             className="w-16 h-16 rounded-full bg-red-600 hover:bg-red-700 active:scale-95 shadow-lg flex items-center justify-center text-2xl transition"
@@ -242,27 +231,28 @@ const OngoingCallUI = () => {
             <MdOutlineCallEnd />
           </button>
 
-          {/* Camera toggle */}
+          {/* Camera Toggle */}
           {isVideoCall && (
-            <button
-              onClick={toggleCamera}
-              className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
-            >
-              {cameraOff ? (
-                <MdVideocamOff className="text-red-500" />
-              ) : (
-                <MdVideocam />
-              )}
-            </button>
-          )}
-          {isVideoCall && (
-            <button
-              onClick={switchCamera}
-              className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
-              title="Switch Camera"
-            >
-              <SwitchCamera />
-            </button>
+            <>
+              <button
+                onClick={toggleCamera}
+                className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
+              >
+                {cameraOff ? (
+                  <MdVideocamOff className="text-red-500" />
+                ) : (
+                  <MdVideocam />
+                )}
+              </button>
+
+              <button
+                onClick={switchCamera}
+                className="w-14 h-14 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center text-xl transition"
+                title="Switch Camera"
+              >
+                <SwitchCamera />
+              </button>
+            </>
           )}
         </div>
       </motion.div>
