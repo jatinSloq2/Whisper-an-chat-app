@@ -6,7 +6,7 @@ import { getColor } from "@/lib/utils";
 import { useAppStore } from "@/store";
 import { HOST } from "@/utils/constant";
 import moment from "moment";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
 import { MdDone, MdDoneAll, MdFolderZip } from "react-icons/md";
@@ -120,10 +120,16 @@ const Message_container = () => {
     };
   }, [socket]);
 
+  const sortedMessages = useMemo(() => {
+    return [...messages].sort(
+      (a, b) => new Date(a.createdAt) - new Date(b.createdAt)
+    );
+  }, [messages]);
+
   const renderMessages = () => {
     let lastDate = null;
 
-    return messages.map((message, index) => {
+    return sortedMessages.map((message, index) => {
       const currentDate = moment(message.timestamp).format("YYYY-MM-DD");
       const isNewDate = currentDate !== lastDate;
       lastDate = currentDate;
@@ -137,7 +143,6 @@ const Message_container = () => {
               </span>
             </div>
           )}
-
           {chatType === "contact"
             ? renderDmMessages(message)
             : renderGroupMessages(message)}
