@@ -70,16 +70,12 @@ export const CallProvider = ({ children }) => {
     duration = 0,
   }) => {
     if (callLogSent.current) return debug("🚫 Duplicate log prevented");
-    if (!type) {
-      debug("⚠️ Skipping call log: messageType is undefined");
-      return;
-    }
     callLogSent.current = true;
 
     socket.emit("store-call-log", {
       sender,
       recipient,
-      messageType: callType || "audio",
+      messageType: type || callType || "audio",
       callDetails: { duration, startedAt, endedAt, status },
     });
   };
@@ -170,11 +166,11 @@ export const CallProvider = ({ children }) => {
 
       incomingCallTimeoutRef.current = setTimeout(() => {
         callEndedByMe.current = true;
-        endCall();
         setIncomingCall(null);
         setCallAccepted(false);
         setInCall(false);
         setPeerId(null);
+        endCall();
         toast.info("Call timed out.");
       }, CALL_TIMEOUT);
     } catch (err) {
@@ -190,11 +186,10 @@ export const CallProvider = ({ children }) => {
     async (toUserId, type = "audio") => {
       callEndedByMe.current = false;
       callLogSent.current = false;
-      setIsLoading(true);
-
       socket.emit("check-user-availability", { to: toUserId }, async (res) => {
-        if (!res?.online)
+        if (!res?.online) {
           return toast.error("User is not available."), setIsLoading(false);
+        }
 
         const stream = await getSafeUserMedia({ video: type === "video" });
         if (!stream) return setIsLoading(false);
@@ -334,9 +329,7 @@ export const CallProvider = ({ children }) => {
         socket.emit("user-busy", { to: from });
         return;
       }
-
       setIncomingCall({ from, offer, type });
-
       incomingCallTimeoutRef.current = setTimeout(() => {
         callEndedByMe.current = true;
         endCall();
@@ -346,10 +339,7 @@ export const CallProvider = ({ children }) => {
         setPeerId(null);
         toast.info("Call timed out.");
 
-        socket.emit("call-timeout", {
-          to: from,
-          from: userInfo.id,
-        });
+        socket.emit("call-timeout", { to: from, from: userInfo.id });
       }, CALL_TIMEOUT);
     });
 
@@ -371,14 +361,15 @@ export const CallProvider = ({ children }) => {
 
     socket.on("user-busy", ({ to }) => {
       if (to === userInfo.id) {
+        toast.error("User is currently on another call.");
         debug("📞 Received busy response from callee");
         callEndedByMe.current = true;
-        endCall();
         setTimeout(() => {
-          if (!callAccepted) endCall(); // Just in case it lingers
+          if (!callAccepted) {
+            endCall();
+          }
         }, 1000);
-
-        toast.error("User is currently on another call.");
+        endCall();
         setIsLoading(false);
       }
     });

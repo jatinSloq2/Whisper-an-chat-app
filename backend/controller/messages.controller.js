@@ -1,6 +1,6 @@
+import { mkdirSync, renameSync } from "fs";
 import path from "path";
-import Message from "../models/messagesModel.js"
-import fs, { renameSync, mkdirSync } from "fs";
+import Message from "../models/messagesModel.js";
 
 export const getMessages = async (req, res) => {
   try {

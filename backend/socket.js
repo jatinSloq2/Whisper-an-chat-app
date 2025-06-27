@@ -64,6 +64,19 @@ const setupSocket = (server) => {
 
   const sendGroupMessage = async (message) => {
     const { groupId, sender, content, messageType, fileUrl } = message;
+
+    const group = await Group.findById(groupId)
+      .populate("members", "_id")
+      .populate("admins", "_id");
+
+    const allUsers = [...group.members, ...group.admins];
+    const uniqueUsers = new Map();
+    allUsers.forEach((u) => uniqueUsers.set(u._id.toString(), u)); // remove dups
+
+    const statusMap = [...uniqueUsers.keys()]
+      .filter((id) => id !== sender) // exclude sender
+      .map((userId) => ({ user: userId, status: "sent" }));
+
     const createdMessage = await Message.create({
       sender,
       recipient: null,
@@ -71,16 +84,11 @@ const setupSocket = (server) => {
       messageType,
       timestamp: new Date(),
       fileUrl,
+      statusMap,
     });
 
     const messageData = await Message.findById(createdMessage._id)
       .populate("sender", "id email firstName lastName image color");
-    await Group.findByIdAndUpdate(groupId, {
-      $push: { messages: createdMessage._id },
-    });
-    const group = await Group.findById(groupId)
-      .populate("members", "_id")
-      .populate("admins", "_id");
 
     const finalData = {
       ...messageData._doc,
@@ -88,10 +96,9 @@ const setupSocket = (server) => {
       groupName: group.name,
       groupImage: group.image,
     };
-    const allUsers = [...group.members, ...group.admins];
+
     const sentTo = new Set();
-    allUsers.forEach((user) => {
-      const userId = user._id.toString();
+    uniqueUsers.forEach((user, userId) => {
       const socketSet = userSocketMap.get(userId);
       if (socketSet) {
         socketSet.forEach((sockId) => {
@@ -118,6 +125,92 @@ const setupSocket = (server) => {
     //-----------------------------------------------------------------
     socket.on("sendMessage", sendMessage);
     socket.on("send-group-message", sendGroupMessage);
+    socket.on("message-received", async ({ messageId }) => {
+      try {
+        const updatedMessage = await Message.findByIdAndUpdate(
+          messageId,
+          { status: "received" },
+          { new: true }
+        )
+          .populate("sender", "id email firstName lastName image color")
+          .populate("recipient", "id email firstName lastName image color");
+
+        if (updatedMessage?.sender?._id) {
+          emitToUser(updatedMessage.sender._id.toString(), "messageStatusUpdate", {
+            messageId,
+            status: "received",
+          });
+        }
+      } catch (err) {
+        console.error("❌ Error marking message as received:", err);
+      }
+    });
+    socket.on("message-read", async ({ messageId }) => {
+      try {
+        const updatedMessage = await Message.findByIdAndUpdate(
+          messageId,
+          {
+            status: "read",
+            readAt: new Date(),
+          },
+          { new: true }
+        )
+          .populate("sender", "id email firstName lastName image color")
+          .populate("recipient", "id email firstName lastName image color");
+
+        if (updatedMessage?.sender?._id) {
+          emitToUser(updatedMessage.sender._id.toString(), "messageStatusUpdate", {
+            messageId,
+            status: "read",
+            readAt: updatedMessage.readAt,
+          });
+        }
+      } catch (err) {
+        console.error("❌ Error marking message as read:", err);
+      }
+    });
+    socket.on("group-message-received", async ({ messageId, userId }) => {
+      try {
+        const message = await Message.findById(messageId);
+        if (!message) return;
+
+        const entry = message.statusMap.find((entry) => entry.user.toString() === userId);
+        if (entry && entry.status === "sent") {
+          entry.status = "received";
+          await message.save();
+
+          emitToUser(message.sender.toString(), "groupMessageStatusUpdate", {
+            messageId,
+            userId,
+            status: "received",
+          });
+        }
+      } catch (err) {
+        console.error("❌ Failed to update group message as received:", err);
+      }
+    });
+    socket.on("group-message-read", async ({ messageId, userId }) => {
+      try {
+        const message = await Message.findById(messageId);
+        if (!message) return;
+
+        const entry = message.statusMap.find((entry) => entry.user.toString() === userId);
+        if (entry && entry.status !== "read") {
+          entry.status = "read";
+          entry.readAt = new Date();
+          await message.save();
+
+          emitToUser(message.sender.toString(), "groupMessageStatusUpdate", {
+            messageId,
+            userId,
+            status: "read",
+            readAt: entry.readAt,
+          });
+        }
+      } catch (err) {
+        console.error("❌ Failed to update group message as read:", err);
+      }
+    });
     //-----------------------------------------------------------------
     socket.on("call-user", ({ to, offer, type, from }) => {
       if (!offer || !offer.type || !offer.sdp) {
@@ -210,14 +303,18 @@ const setupSocket = (server) => {
         console.error("❌ Failed to save call log:", err);
       }
     });
-
     socket.on("disconnect", () => {
+      const userId = [...userSocketMap.entries()]
+        .find(([_, sockets]) => sockets.has(socket.id))?.[0];
+
       disconnect(socket);
-      for (const [user, peer] of activeCalls.entries()) {
-        if (userSocketMap.get(user)?.has(socket.id)) {
-          activeCalls.delete(user);
+
+      if (userId) {
+        const peer = activeCalls.get(userId);
+        if (peer) {
+          activeCalls.delete(userId);
           activeCalls.delete(peer);
-          emitToUser(peer, "call-ended", { from: user });
+          emitToUser(peer, "call-ended", { from: userId });
         }
       }
     });

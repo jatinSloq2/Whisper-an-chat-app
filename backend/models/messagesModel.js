@@ -44,9 +44,31 @@ const messageSchema = new mongoose.Schema(
     callDetails: {
       type: callDetailsSchema,
       required: function () {
-        return ["call", "video"].includes(this.messageType);
+        return this.messageType === "audio" || this.messageType === "video";
       },
     },
+    status: {
+      type: String,
+      enum: ["sent", "received", "read"],
+      default: "sent",
+    },
+    readAt: {
+      type: Date,
+    },
+    statusMap: [
+      {
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        status: {
+          type: String,
+          enum: ["sent", "received", "read"],
+          default: "sent",
+        },
+        readAt: Date,
+      },
+    ],
   },
   { timestamps: true }
 );

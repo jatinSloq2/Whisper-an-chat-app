@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMessages } from "@/context/MessagesContext";
+import { useSocket } from "@/context/socketContext";
 import { apiClient } from "@/lib/api-client";
 import { getColor } from "@/lib/utils";
 import { useAppStore } from "@/store";
@@ -12,6 +13,7 @@ import { MdFolderZip } from "react-icons/md";
 import { toast } from "sonner";
 import CallMessageUI from "./CallMessage";
 const Message_container = () => {
+  const { socket } = useSocket();
   const scrollRef = useRef();
 
   const {
@@ -22,9 +24,24 @@ const Message_container = () => {
     setIsDownloading,
     setFileDownloadProgress,
   } = useMessages();
+  const [initialScrollDone, setInitialScrollDone] = useState(false);
   const { userInfo } = useAppStore();
   const [showImage, setShowImage] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
+
+  useEffect(() => {
+    if (chatData?._id && chatType) {
+      fetchMessages(chatData._id, chatType);
+      setInitialScrollDone(false); // reset on chat switch
+    }
+  }, [chatData?._id, chatType]);
+
+  useEffect(() => {
+    if (messages.length > 0 && !initialScrollDone) {
+      scrollRef.current?.scrollIntoView({ behavior: "auto" }); // no animation on first load
+      setInitialScrollDone(true);
+    }
+  }, [messages, initialScrollDone]);
   useEffect(() => {
     if (chatData?._id && chatType === "contact") {
       fetchMessages(chatData._id, chatType);
@@ -34,11 +51,55 @@ const Message_container = () => {
   }, [chatData?._id, chatType]);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    messages.forEach((msg) => {
+      if (
+        chatType === "contact" &&
+        msg.recipient === userInfo.id &&
+        msg.status === "sent"
+      ) {
+        socket.emit("message-received", { messageId: msg._id });
+      }
+
+      if (
+        chatType === "group" &&
+        msg.statusMap?.some(
+          (m) => m.user === userInfo.id && m.status === "sent"
+        )
+      ) {
+        socket.emit("group-message-received", {
+          messageId: msg._id,
+          userId: userInfo.id,
+        });
+      }
+    });
   }, [messages]);
 
+  const markAsRead = () => {
+    const lastMsg = messages[messages.length - 1];
+    if (!lastMsg) return;
+
+    if (
+      chatType === "contact" &&
+      lastMsg.recipient === userInfo.id &&
+      lastMsg.status !== "read"
+    ) {
+      socket.emit("message-read", { messageId: lastMsg._id });
+    }
+
+    if (chatType === "group") {
+      const userStatus = lastMsg.statusMap?.find((s) => s.user === userInfo.id);
+      if (userStatus?.status !== "read") {
+        socket.emit("group-message-read", {
+          messageId: lastMsg._id,
+          userId: userInfo.id,
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    markAsRead();
+  }, [messages]);
   const renderMessages = () => {
     let lastDate = null;
 
@@ -150,14 +211,16 @@ const Message_container = () => {
                 startedAt={message.callDetails?.startedAt}
               />
             )}
-          </div>
-
-          <div
-            className={`text-xs mt-1 ${
-              isSender ? "text-right text-gray-400" : "text-left text-gray-500"
-            }`}
-          >
-            {moment(message.createdAt).format("LT")}
+            {isSender && (
+              <div className="text-xs mt-1 text-right text-gray-400 flex items-center gap-1">
+                {moment(message.createdAt).format("LT")}
+                {message.status === "read"
+                  ? "✓✓"
+                  : message.status === "received"
+                  ? "✓"
+                  : ""}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -233,13 +296,12 @@ const Message_container = () => {
               </>
             )}
 
-            {["audio", "video"].includes(message.messageType) && (
-              <CallMessageUI
-                type={message.messageType}
-                status={message.callDetails?.status}
-                duration={message.callDetails?.duration}
-                startedAt={message.callDetails?.startedAt}
-              />
+            {chatType === "group" && isSender && (
+              <div className="text-xs mt-1 text-right text-gray-400">
+                Read by:{" "}
+                {message.statusMap?.filter((m) => m.status === "read").length}{" "}
+                members
+              </div>
             )}
           </div>
 
