@@ -61,27 +61,27 @@ export const MessagesProvider = ({ children }) => {
   };
 
   const updateMessageStatus = (messageId, newStatus) => {
-  setMessages((prevMessages) =>
-    prevMessages.map((msg) =>
-      msg._id === messageId ? { ...msg, status: newStatus } : msg
-    )
-  );
-};
+    setMessages((prevMessages) =>
+      prevMessages.map((msg) =>
+        msg._id === messageId ? { ...msg, status: newStatus } : msg
+      )
+    );
+  };
 
-const updateGroupMessageStatus = (messageId, userId, newStatus) => {
-  setMessages((prevMessages) =>
-    prevMessages.map((msg) =>
-      msg._id === messageId
-        ? {
-            ...msg,
-            statusMap: msg.statusMap.map((s) =>
-              s.user === userId ? { ...s, status: newStatus } : s
-            ),
-          }
-        : msg
-    )
-  );
-};
+  const updateGroupMessageStatus = (messageId, userId, newStatus) => {
+    setMessages((prevMessages) =>
+      prevMessages.map((msg) =>
+        msg._id === messageId
+          ? {
+              ...msg,
+              statusMap: msg.statusMap.map((s) =>
+                s.user === userId ? { ...s, status: newStatus } : s
+              ),
+            }
+          : msg
+      )
+    );
+  };
 
   const value = useMemo(
     () => ({
@@ -104,7 +104,7 @@ const updateGroupMessageStatus = (messageId, userId, newStatus) => {
       showProfile,
       setShowProfile,
       updateGroupMessageStatus,
-      updateMessageStatus
+      updateMessageStatus,
     }),
     [
       messages,

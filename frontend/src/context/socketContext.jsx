@@ -32,6 +32,7 @@ export const SocketProvider = ({ children }) => {
     chatTypeRef.current = chatType;
     addMessageRef.current = addMessage;
   }, [chatData, chatType, addMessage]);
+
   useEffect(() => {
     if (!userInfo) return;
     const socket = io(HOST, {
@@ -47,6 +48,7 @@ export const SocketProvider = ({ children }) => {
 
     socket.on("receiveMessage", (message) => {
       if (!message) return;
+
       const senderId =
         typeof message.sender === "object"
           ? message.sender._id
@@ -55,10 +57,16 @@ export const SocketProvider = ({ children }) => {
         typeof message.recipient === "object"
           ? message.recipient._id
           : message.recipient;
+
       const chatId = chatDataRef.current?._id || chatDataRef.current?.id;
       const isChatOpen =
         chatTypeRef.current === "contact" &&
         (chatId === senderId || chatId === recipientId);
+
+      // Emit read receipt immediately
+      if (recipientId === userInfo.id && message.status === "sent") {
+        socket.emit("message-received", { messageId: message._id });
+      }
 
       if (isChatOpen) {
         addMessageRef.current(message);
@@ -84,14 +92,12 @@ export const SocketProvider = ({ children }) => {
                 firstName: message.sender?.firstName || "Unknown",
                 email: message.sender?.email || "",
               };
-
               setChatType("contact");
               setChatData(contactData);
-
-              console.log("🔓 Chat opened via toast");
             },
           },
         });
+
         showWebNotification({
           title: `New message from ${sender}`,
           body:
@@ -104,26 +110,25 @@ export const SocketProvider = ({ children }) => {
               typeof message.sender === "object"
                 ? message.sender._id
                 : message.sender;
-
             const fullContact = chatList.find(
               (c) => c._id === contactId || c.linkedUser?._id === contactId
             );
-
             const contactData = fullContact || {
               _id: contactId,
               firstName: message.sender?.firstName || "Unknown",
               email: message.sender?.email || "",
             };
-
             setChatType("contact");
             setChatData(contactData);
           },
           enabled: userInfo?.settings?.desktopNotifications === true,
         });
       }
+
       const contact =
         userInfo.id === senderId ? message.recipient : message.sender;
       const contactId = typeof contact === "object" ? contact._id : contact;
+
       upsertChatToTop({
         _id: contactId,
         lastMessage: message.content,
@@ -131,6 +136,7 @@ export const SocketProvider = ({ children }) => {
         unread: !isChatOpen,
         type: "contact",
       });
+
       const shouldRefetch =
         !socketRef.current.contactsCache ||
         !socketRef.current.contactsCache.includes(contactId);
@@ -143,16 +149,30 @@ export const SocketProvider = ({ children }) => {
         });
       }
     });
+
     socket.on("receive-group-message", (message) => {
       if (!message) return;
+
       const groupId = message.groupId;
       const chatId = chatDataRef.current?._id || chatDataRef.current?.id;
       const isChatOpen = chatTypeRef.current === "group" && chatId === groupId;
+
+      const hasUserStatus = message.statusMap?.some(
+        (s) => s.user === userInfo.id && s.status === "sent"
+      );
+      if (hasUserStatus) {
+        socket.emit("group-message-received", {
+          messageId: message._id,
+          userId: userInfo.id,
+        });
+      }
+
       if (isChatOpen) {
         addMessageRef.current(message);
       } else {
         const fallbackName = message.groupName || message.name || "A group";
         const fullGroup = chatList.find((g) => g._id === groupId);
+
         toast.success(`📢 New message in ${fallbackName}`, {
           description:
             message.content.length > 50
@@ -194,13 +214,15 @@ export const SocketProvider = ({ children }) => {
           enabled: userInfo?.settings?.desktopNotifications === true,
         });
       }
+
       upsertChatToTop({
         _id: groupId,
         lastMessage: message.content,
         updatedAt: new Date(),
-        unread: true,
+        unread: !isChatOpen,
         type: "group",
       });
+
       fetchChatList();
     });
 
