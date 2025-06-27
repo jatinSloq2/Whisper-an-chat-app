@@ -40,7 +40,7 @@ export const MessagesProvider = ({ children }) => {
       if (!appendTop) setMessages([]);
       toast.error("Failed to fetch messages. Please try again later.");
       console.error("Fetch messages error:", err);
-      setHasMoreMessages(false); // 🚨 don't keep it true on error
+      setHasMoreMessages(false); 
     } finally {
       setIsMessagesLoading(false);
     }

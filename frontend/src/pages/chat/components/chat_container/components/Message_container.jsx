@@ -36,6 +36,11 @@ const Message_container = () => {
   const [page, setPage] = useState(1);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
+useEffect(() => {
+  if (!chatData || !chatType) return;
+  fetchMessages(chatData._id, chatType, 1, false);
+}, [chatData?._id, chatType]);
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
