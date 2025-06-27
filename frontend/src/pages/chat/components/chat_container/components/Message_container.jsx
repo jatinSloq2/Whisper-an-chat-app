@@ -13,7 +13,7 @@ import { MdFolderZip } from "react-icons/md";
 import { toast } from "sonner";
 import CallMessageUI from "./CallMessage";
 const Message_container = () => {
-  const { socket } = useSocket();
+  const socket = useSocket();
   const scrollRef = useRef();
 
   const {
@@ -51,6 +51,8 @@ const Message_container = () => {
   }, [chatData?._id, chatType]);
 
   useEffect(() => {
+    if (!socket) return;
+
     messages.forEach((msg) => {
       if (
         chatType === "contact" &&
@@ -72,9 +74,10 @@ const Message_container = () => {
         });
       }
     });
-  }, [messages]);
+  }, [messages, socket]);
 
   const markAsRead = () => {
+    if (!socket) return;
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg) return;
 
