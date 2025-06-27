@@ -32,10 +32,7 @@ const Message_container = () => {
   const [imageUrl, setImageUrl] = useState(null);
 
   useEffect(() => {
-    if (chatData?._id && chatType) {
-      fetchMessages(chatData._id, chatType);
-      setInitialScrollDone(false);
-    }
+    setInitialScrollDone(false);
   }, [chatData?._id, chatType]);
 
   useEffect(() => {
@@ -47,31 +44,35 @@ const Message_container = () => {
     }
   }, [messages]);
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !messages.length) return;
 
-    messages.forEach((msg) => {
-      if (
-        chatType === "contact" &&
-        msg.recipient === userInfo.id &&
-        msg.status === "sent"
-      ) {
+    const messagesToAcknowledge = messages.filter((msg) => {
+      if (chatType === "contact") {
+        return msg.recipient === userInfo.id && msg.status === "sent";
+      }
+
+      if (chatType === "group") {
+        return msg.statusMap?.some(
+          (m) => m.user === userInfo.id && m.status === "sent"
+        );
+      }
+
+      return false;
+    });
+
+    messagesToAcknowledge.forEach((msg) => {
+      if (chatType === "contact") {
         socket.emit("message-received", { messageId: msg._id });
       }
 
-      if (
-        chatType === "group" &&
-        msg.statusMap?.some(
-          (m) => m.user === userInfo.id && m.status === "sent"
-        )
-      ) {
+      if (chatType === "group") {
         socket.emit("group-message-received", {
           messageId: msg._id,
           userId: userInfo.id,
         });
       }
     });
-  }, [messages, socket]);
-
+  }, [socket, messages, chatType, userInfo.id]);
   const markAsRead = () => {
     if (!socket) return;
     const lastMsg = messages[messages.length - 1];

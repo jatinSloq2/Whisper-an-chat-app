@@ -10,7 +10,7 @@ import Message_bar from "./components/Message_bar";
 const Chat_container = () => {
   const { showProfile, fetchMessages, chatData, chatType } = useMessages();
   const { isMessagesLoading } = useUI();
-  console.log(isMessagesLoading, "isLoading");
+  console.log(isMessagesLoading, "isMessagesLoading");
 
   useEffect(() => {
     if (chatData && chatType) {

@@ -19,6 +19,7 @@ export const MessagesProvider = ({ children }) => {
 
   const fetchMessages = async (id, type) => {
     if (!id || !["contact", "group"].includes(type)) return;
+    console.log("Start Fetch", id, type);
     setIsMessagesLoading(true);
     try {
       const res =
@@ -30,14 +31,17 @@ export const MessagesProvider = ({ children }) => {
 
       if (res.data.messages) {
         setMessages(res.data.messages);
-        console.log(res);
+        console.log("Fetched:", res.data.messages?.length);
       }
     } catch (err) {
       setMessages([]);
       toast.error("Failed to fetch messages. Please try again later.");
       console.error("Fetch messages error:", err);
     } finally {
-      setIsMessagesLoading(false);
+      setTimeout(() => {
+        console.log("End Loading");
+        setIsMessagesLoading(false);
+      }, 50);
     }
   };
 
