@@ -20,52 +20,24 @@ const Message_container = () => {
     chatType,
     chatData,
     messages,
+    fetchMessages,
     setIsDownloading,
     setFileDownloadProgress,
     updateMessageStatus,
     updateGroupMessageStatus,
-    hasMoreMessages,
-    fetchMessages,
   } = useMessages();
   const [initialScrollDone, setInitialScrollDone] = useState(false);
   const { userInfo } = useAppStore();
   const [showImage, setShowImage] = useState(false);
   const [imageUrl, setImageUrl] = useState(null);
-  const containerRef = useRef(null);
-  const topRef = useRef(null);
-  const [page, setPage] = useState(1);
-  const [isFetchingMore, setIsFetchingMore] = useState(false);
-
-useEffect(() => {
-  if (!chatData || !chatType) return;
-  fetchMessages(chatData._id, chatType, 1, false);
-}, [chatData?._id, chatType]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore();
-      },
-      {
-        root: containerRef.current,
-        threshold: 0.1,
-      }
-    );
-
-    const topEl = topRef.current;
-    if (topEl) observer.observe(topEl);
-
-    return () => {
-      if (topEl) observer.unobserve(topEl);
-    };
-  }, [chatData, page]);
-
-  useEffect(() => {
-    setInitialScrollDone(false);
+    if (chatData?._id && chatType) {
+      fetchMessages(chatData._id, chatType);
+      setInitialScrollDone(false);
+    }
   }, [chatData?._id, chatType]);
-  useEffect(() => {
-    setPage(1);
-  }, [chatData?._id]);
+
   useEffect(() => {
     if (messages.length > 0) {
       scrollRef.current?.scrollIntoView({
@@ -124,49 +96,24 @@ useEffect(() => {
     }
   };
 
-  const loadMore = async () => {
-    if (
-      !chatData ||
-      !hasMoreMessages ||
-      isFetchingMore ||
-      !containerRef.current
-    )
-      return;
-
-    setIsFetchingMore(true);
-
-    const prevScrollHeight = containerRef.current.scrollHeight;
-
-    try {
-      await fetchMessages(chatData._id, chatType, page + 1, true);
-      setPage((prev) => prev + 1);
-      requestAnimationFrame(() => {
-        if (!containerRef.current) return;
-        const newHeight = containerRef.current.scrollHeight;
-        containerRef.current.scrollTop = newHeight - prevScrollHeight;
-      });
-      console.log("Loaded page:", page + 1);
-    } catch (err) {
-      console.error("loadMore error:", err);
-    } finally {
-      setIsFetchingMore(false);
-    }
-  };
-
   useEffect(() => {
     markAsRead();
   }, [messages]);
 
   useEffect(() => {
     if (!socket) return;
+
     const handleMessageStatusUpdate = ({ messageId, status }) => {
       updateMessageStatus(messageId, status);
     };
+
     const handleGroupMessageStatusUpdate = ({ messageId, userId, status }) => {
       updateGroupMessageStatus(messageId, userId, status);
     };
+
     socket.on("messageStatusUpdate", handleMessageStatusUpdate);
     socket.on("groupMessageStatusUpdate", handleGroupMessageStatusUpdate);
+
     return () => {
       socket.off("messageStatusUpdate", handleMessageStatusUpdate);
       socket.off("groupMessageStatusUpdate", handleGroupMessageStatusUpdate);
@@ -188,7 +135,7 @@ useEffect(() => {
       lastDate = currentDate;
 
       return (
-        <React.Fragment key={`${message._id}-${index}`}>
+        <React.Fragment key={`${message._id || index}-${currentDate}`}>
           {isNewDate && (
             <div className="text-center my-4">
               <span className="inline-block bg-gray-200 text-gray-600 text-xs px-4 py-1 rounded-full shadow-sm">
@@ -422,49 +369,49 @@ useEffect(() => {
   };
 
   return (
-    <>
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto px-4 py-6 md:px-10 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
-      >
-        {hasMoreMessages && <div ref={topRef} className="h-1"></div>}
-        {renderMessages()}
-        <div ref={scrollRef}></div>
-      </div>
+    <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+      {renderMessages()}
+      <div ref={scrollRef}></div>
 
-      {/* 🖼️ Image Preview Modal */}
       {showImage && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
-          {/* Floating Buttons */}
-          <div className="fixed top-4 z-[110] flex gap-3">
-            <button
-              className="bg-white/10 text-white p-3 text-xl rounded-full hover:bg-white/20 transition-all"
-              onClick={() => downloadFile(imageUrl)}
-            >
-              <IoMdArrowRoundDown />
-            </button>
-            <button
-              className="bg-white/10 text-white p-3 text-xl rounded-full hover:bg-white/20 transition-all"
-              onClick={() => {
-                setImageUrl(null);
-                setShowImage(false);
-              }}
-            >
-              <IoCloseSharp />
-            </button>
-          </div>
+        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-10 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+          {renderMessages()}
+          <div ref={scrollRef}></div>
 
-          {/* Image Container */}
-          <div className="relative w-fit max-w-[90vw] max-h-[85vh] p-4">
-            <img
-              src={`${HOST}/${imageUrl}`}
-              alt="Preview"
-              className="rounded-lg shadow-lg object-contain max-h-[75vh] max-w-full"
-            />
-          </div>
+          {showImage && (
+            <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center">
+              {/* 🔒 Floating buttons - OUTSIDE of image container */}
+              <div className="fixed top-4 z-[110] flex gap-3">
+                <button
+                  className="bg-white/10 text-white p-3 text-xl rounded-full hover:bg-white/20 transition-all"
+                  onClick={() => downloadFile(imageUrl)}
+                >
+                  <IoMdArrowRoundDown />
+                </button>
+                <button
+                  className="bg-white/10 text-white p-3 text-xl rounded-full hover:bg-white/20 transition-all"
+                  onClick={() => {
+                    setImageUrl(null);
+                    setShowImage(false);
+                  }}
+                >
+                  <IoCloseSharp />
+                </button>
+              </div>
+
+              {/* 🖼️ Image container */}
+              <div className="relative w-fit max-w-[90vw] max-h-[85vh] p-4">
+                <img
+                  src={`${HOST}/${imageUrl}`}
+                  alt="Preview"
+                  className="rounded-lg shadow-lg object-contain max-h-[75vh] max-w-full"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
-    </>
+    </div>
   );
 };
 

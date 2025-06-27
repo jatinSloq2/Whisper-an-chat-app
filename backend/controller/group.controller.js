@@ -79,28 +79,22 @@ export const getUserGroups = async (request, response) => {
 
 export const getAllGroupMessages = async (req, res) => {
   try {
-    const { groupId, page = 1 } = req.query;
-    const limit = 20;
-    const skip = (parseInt(page) - 1) * limit;
+    const { groupId } = req.query;
 
-    const group = await Group.findById(groupId).populate("messages");
+    const group = await Group.findById(groupId).populate({
+      path: "messages",
+      populate: {
+        path: "sender",
+        select: "firstName lastName image email _id color"
+      }
+    });
 
     if (!group) {
       return res.status(404).send("Group not found");
     }
 
-    const totalMessages = group.messages.length;
-
-    const messages = await Message.find({ _id: { $in: group.messages } })
-      .sort({ timestamp: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("sender", "firstName lastName image email _id color");
-
-    return res.status(200).json({
-      messages: messages.reverse(), // maintain chronological order
-      hasMore: skip + limit < totalMessages,
-    });
+    const messages = group.messages;
+    return res.status(200).json({ messages });
   } catch (error) {
     console.log("🔥 Error in getAllGroupMessages:", error);
     return res.status(500).send("Internal Server Error");

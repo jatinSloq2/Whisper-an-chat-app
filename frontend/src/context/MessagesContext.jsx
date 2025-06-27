@@ -16,31 +16,26 @@ export const MessagesProvider = ({ children }) => {
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [fileDownloadProgress, setFileDownloadProgress] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
-  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
-  const fetchMessages = async (id, type, page = 1, appendTop = false) => {
+  const fetchMessages = async (id, type) => {
     if (!id || !["contact", "group"].includes(type)) return;
     setIsMessagesLoading(true);
-
     try {
       const res =
         type === "contact"
-          ? await apiClient.post(GET_MSG, { id, page })
+          ? await apiClient.post(GET_MSG, { id })
           : await apiClient.get(`${GET_ALL_MSG_GROUP}`, {
-              params: { groupId: id, page },
+              params: { groupId: id },
             });
 
       if (res.data.messages) {
-        setMessages((prev) =>
-          appendTop ? [...res.data.messages, ...prev] : res.data.messages
-        );
-        setHasMoreMessages(res.data.hasMore ?? false);
+        setMessages(res.data.messages);
+        console.log(res);
       }
     } catch (err) {
-      if (!appendTop) setMessages([]);
+      setMessages([]);
       toast.error("Failed to fetch messages. Please try again later.");
       console.error("Fetch messages error:", err);
-      setHasMoreMessages(false); 
     } finally {
       setIsMessagesLoading(false);
     }
@@ -110,8 +105,6 @@ export const MessagesProvider = ({ children }) => {
       setShowProfile,
       updateGroupMessageStatus,
       updateMessageStatus,
-      hasMoreMessages,
-      setHasMoreMessages,
     }),
     [
       messages,
