@@ -9,7 +9,7 @@ import moment from "moment";
 import React, { useEffect, useRef, useState } from "react";
 import { IoMdArrowRoundDown } from "react-icons/io";
 import { IoCloseSharp } from "react-icons/io5";
-import { MdFolderZip } from "react-icons/md";
+import { MdDone, MdDoneAll, MdFolderZip } from "react-icons/md";
 import { toast } from "sonner";
 import CallMessageUI from "./CallMessage";
 const Message_container = () => {
@@ -23,6 +23,8 @@ const Message_container = () => {
     fetchMessages,
     setIsDownloading,
     setFileDownloadProgress,
+    updateMessageStatus,
+    updateGroupMessageStatus,
   } = useMessages();
   const [initialScrollDone, setInitialScrollDone] = useState(false);
   const { userInfo } = useAppStore();
@@ -32,24 +34,18 @@ const Message_container = () => {
   useEffect(() => {
     if (chatData?._id && chatType) {
       fetchMessages(chatData._id, chatType);
-      setInitialScrollDone(false); // reset on chat switch
+      setInitialScrollDone(false);
     }
   }, [chatData?._id, chatType]);
 
   useEffect(() => {
-    if (messages.length > 0 && !initialScrollDone) {
-      scrollRef.current?.scrollIntoView({ behavior: "auto" }); // no animation on first load
-      setInitialScrollDone(true);
+    if (messages.length > 0) {
+      scrollRef.current?.scrollIntoView({
+        behavior: initialScrollDone ? "smooth" : "auto",
+      });
+      if (!initialScrollDone) setInitialScrollDone(true);
     }
-  }, [messages, initialScrollDone]);
-  useEffect(() => {
-    if (chatData?._id && chatType === "contact") {
-      fetchMessages(chatData._id, chatType);
-    } else if (chatData?._id && chatType === "group") {
-      fetchMessages(chatData._id, chatType);
-    }
-  }, [chatData?._id, chatType]);
-
+  }, [messages]);
   useEffect(() => {
     if (!socket) return;
 
@@ -103,6 +99,27 @@ const Message_container = () => {
   useEffect(() => {
     markAsRead();
   }, [messages]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessageStatusUpdate = ({ messageId, status }) => {
+      updateMessageStatus(messageId, status);
+    };
+
+    const handleGroupMessageStatusUpdate = ({ messageId, userId, status }) => {
+      updateGroupMessageStatus(messageId, userId, status);
+    };
+
+    socket.on("messageStatusUpdate", handleMessageStatusUpdate);
+    socket.on("groupMessageStatusUpdate", handleGroupMessageStatusUpdate);
+
+    return () => {
+      socket.off("messageStatusUpdate", handleMessageStatusUpdate);
+      socket.off("groupMessageStatusUpdate", handleGroupMessageStatusUpdate);
+    };
+  }, [socket]);
+
   const renderMessages = () => {
     let lastDate = null;
 
@@ -178,7 +195,6 @@ const Message_container = () => {
             }`}
           >
             {message.messageType === "text" && message.content}
-
             {message.messageType === "file" && (
               <>
                 {checkIfImage(message.fileUrl) ? (
@@ -205,7 +221,6 @@ const Message_container = () => {
                 )}
               </>
             )}
-
             {["audio", "video"].includes(message.messageType) && (
               <CallMessageUI
                 type={message.messageType}
@@ -214,17 +229,30 @@ const Message_container = () => {
                 startedAt={message.callDetails?.startedAt}
               />
             )}
-            {isSender && (
-              <div className="text-xs mt-1 text-right text-gray-400 flex items-center gap-1">
-                {moment(message.createdAt).format("LT")}
-                {message.status === "read"
-                  ? "✓✓"
-                  : message.status === "received"
-                  ? "✓"
-                  : ""}
-              </div>
-            )}
           </div>
+
+          {isSender ? (
+            <div className="text-xs mt-1 flex justify-end items-center gap-1 px-1">
+              <span className="text-gray-500">
+                {moment(message.createdAt).format("LT")}
+              </span>
+              {message.status === "sent" && (
+                <MdDone className="text-gray-400 text-base" />
+              )}
+              {message.status === "received" && (
+                <MdDoneAll className="text-gray-400 text-base" />
+              )}
+              {message.status === "read" && (
+                <MdDoneAll className="text-purple-700 text-base" />
+              )}
+            </div>
+          ) : (
+            <div className="text-xs mt-1 flex justify-end items-center gap-1 px-1">
+              <span className="text-gray-500">
+                {moment(message.createdAt).format("LT")}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -309,8 +337,25 @@ const Message_container = () => {
           </div>
 
           {isSender && (
-            <div className="text-xs mt-1 text-right text-gray-400">
-              {moment(message.createdAt).format("LT")}
+            <div className="text-xs mt-1 flex justify-end items-center gap-1 px-1">
+              <span className="text-gray-500">
+                {moment(message.createdAt).format("LT")}
+              </span>
+              {(() => {
+                const userStatus = message.statusMap?.find(
+                  (s) => s.user === userInfo.id
+                )?.status;
+
+                if (userStatus === "sent") {
+                  return <MdDone className="text-gray-400 text-base" />;
+                } else if (userStatus === "received") {
+                  return <MdDoneAll className="text-gray-400 text-base" />;
+                } else if (userStatus === "read") {
+                  return <MdDoneAll className="text-purple-700 text-base" />;
+                } else {
+                  return null;
+                }
+              })()}
             </div>
           )}
         </div>

@@ -60,6 +60,29 @@ export const MessagesProvider = ({ children }) => {
     setMessages((prevMessages) => [...prevMessages, formattedMessage]);
   };
 
+  const updateMessageStatus = (messageId, newStatus) => {
+  setMessages((prevMessages) =>
+    prevMessages.map((msg) =>
+      msg._id === messageId ? { ...msg, status: newStatus } : msg
+    )
+  );
+};
+
+const updateGroupMessageStatus = (messageId, userId, newStatus) => {
+  setMessages((prevMessages) =>
+    prevMessages.map((msg) =>
+      msg._id === messageId
+        ? {
+            ...msg,
+            statusMap: msg.statusMap.map((s) =>
+              s.user === userId ? { ...s, status: newStatus } : s
+            ),
+          }
+        : msg
+    )
+  );
+};
+
   const value = useMemo(
     () => ({
       messages,
@@ -80,6 +103,8 @@ export const MessagesProvider = ({ children }) => {
       setFileDownloadProgress,
       showProfile,
       setShowProfile,
+      updateGroupMessageStatus,
+      updateMessageStatus
     }),
     [
       messages,
