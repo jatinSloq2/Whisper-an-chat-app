@@ -9,11 +9,11 @@ const ContactsContext = createContext();
 
 export const ContactsProvider = ({ children }) => {
   const { userInfo } = useAppStore();
-  const { setIsLoading } = useUI();
+  const { setIsContactsLoading } = useUI();
   const [chatList, setChatList] = useState([]);
 
   const fetchChatList = async () => {
-    setIsLoading(true);
+    setIsContactsLoading(true);
     try {
       const [contactsRes, groupsRes] = await Promise.all([
         apiClient.get(GET_CONTACTS_DMS),
@@ -31,13 +31,12 @@ export const ContactsProvider = ({ children }) => {
           ...g,
           type: "group",
         })) || [];
-
       setChatList([...contacts, ...groups]);
     } catch (err) {
       setChatList([]);
       toast.error("Failed to load chat list. Please try again.");
     } finally {
-      setIsLoading(false);
+      setIsContactsLoading(false);
     }
   };
 

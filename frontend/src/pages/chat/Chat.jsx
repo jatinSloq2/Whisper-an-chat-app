@@ -13,6 +13,8 @@ import Chat_container from "./components/chat_container/Chat_container";
 import Contacts_container from "./components/contacts_container/Contacts_container";
 import Empty_chat_container from "./components/empty_chats_container/Empty_chat_container";
 import Settings_container from "./components/Settings/Settings_container";
+import ChatListSkeleton from "@/components/ChatListSkeleton";
+import { useUI } from "@/context/UIcontext";
 
 const Chat = () => {
   const { userInfo } = useAppStore();
@@ -53,7 +55,7 @@ const Chat = () => {
         </div>
       )}
       <ErrorBoundary>
-        <Contacts_container />
+      <Contacts_container />
       </ErrorBoundary>
       {isSettingsOpen ? (
         <Settings_container />

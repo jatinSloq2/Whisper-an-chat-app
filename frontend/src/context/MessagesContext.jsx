@@ -7,7 +7,7 @@ import { useUI } from "./UIcontext";
 const MessagesContext = createContext();
 
 export const MessagesProvider = ({ children }) => {
-  const { setIsLoading } = useUI();
+  const { setIsMessagesLoading } = useUI();
   const [messages, setMessages] = useState([]);
   const [chatType, setChatType] = useState(undefined);
   const [chatData, setChatData] = useState(undefined);
@@ -16,28 +16,33 @@ export const MessagesProvider = ({ children }) => {
   const [fileUploadProgress, setFileUploadProgress] = useState(0);
   const [fileDownloadProgress, setFileDownloadProgress] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
 
-  const fetchMessages = async (id, type) => {
+  const fetchMessages = async (id, type, page = 1, appendTop = false) => {
     if (!id || !["contact", "group"].includes(type)) return;
-    setIsLoading(true);
+    setIsMessagesLoading(true);
+
     try {
       const res =
         type === "contact"
-          ? await apiClient.post(GET_MSG, { id })
+          ? await apiClient.post(GET_MSG, { id, page })
           : await apiClient.get(`${GET_ALL_MSG_GROUP}`, {
-              params: { groupId: id },
+              params: { groupId: id, page },
             });
 
       if (res.data.messages) {
-        setMessages(res.data.messages);
-        console.log(res);
+        setMessages((prev) =>
+          appendTop ? [...res.data.messages, ...prev] : res.data.messages
+        );
+        setHasMoreMessages(res.data.hasMore ?? false);
       }
     } catch (err) {
-      setMessages([]);
+      if (!appendTop) setMessages([]);
       toast.error("Failed to fetch messages. Please try again later.");
       console.error("Fetch messages error:", err);
+      setHasMoreMessages(false); // 🚨 don't keep it true on error
     } finally {
-      setIsLoading(false);
+      setIsMessagesLoading(false);
     }
   };
 
@@ -105,6 +110,8 @@ export const MessagesProvider = ({ children }) => {
       setShowProfile,
       updateGroupMessageStatus,
       updateMessageStatus,
+      hasMoreMessages,
+      setHasMoreMessages,
     }),
     [
       messages,

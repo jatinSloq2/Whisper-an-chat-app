@@ -57,17 +57,6 @@ const Logo = ({ unifiedContacts }) => {
     );
   });
 
-  const logout = async () => {
-    try {
-      const res = await apiClient.post(LOGOUT_ROUTES);
-      if (res.status === 200) {
-        window.location.href = "/auth";
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
   return (
     <>
       <div className="relative">

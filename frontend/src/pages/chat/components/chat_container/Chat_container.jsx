@@ -1,20 +1,35 @@
-import React from "react";
+import { useEffect } from "react";
+import { useMessages } from "@/context/MessagesContext";
+import { useUI } from "@/context/UIcontext";
 import Chat_header from "./components/Chat_header";
-import Message_bar from "./components/Message_bar";
+import MessageSkeleton from "@/components/MessagesSkeleton";
 import Message_container from "./components/Message_container";
 import User_profile from "./components/User_profile";
-import { useMessages } from "@/context/MessagesContext";
+import Message_bar from "./components/Message_bar";
 
 const Chat_container = () => {
-  const { showProfile } = useMessages();
+  const { showProfile, fetchMessages, chatData, chatType } = useMessages();
+  const { isMessagesLoading } = useUI();
+  console.log(isMessagesLoading, "isLoading");
+
+  useEffect(() => {
+    if (chatData && chatType) {
+      fetchMessages(chatData._id, chatType);
+    }
+  }, [chatData, chatType]);
 
   return (
     <div className="fixed inset-0 md:static md:flex-1 bg-gray-100 text-black">
       <div className="relative flex flex-col h-full w-full">
-        {/* Main Chat Area */}
         <div className="flex flex-col h-full">
           <Chat_header />
-          <Message_container />
+
+          <div className="flex-1 flex justify-center overflow-y-auto">
+            <div className="w-full xl:w-[85%] max-w-full h-full">
+              {isMessagesLoading ? <MessageSkeleton /> : <Message_container />}
+            </div>
+          </div>
+
           <Message_bar />
         </div>
 

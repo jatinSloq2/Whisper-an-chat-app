@@ -1,30 +1,35 @@
+import ChatListSkeleton from "@/components/ChatListSkeleton";
 import ContactsList from "@/components/ContactsList";
 import { useContacts } from "@/context/ContactContext";
+import { useUI } from "@/context/UIcontext";
+import { useMemo } from "react";
 import Logo from "./components/Logo";
 
 const Contacts_container = () => {
-  const { contacts, groups , chatList} = useContacts();
-  // const unifiedContacts = [...contacts, ...groups].map((c) => ({
-  //   ...c,
-  //   isGroup: Array.isArray(c.members),
-  // }));
-  const unifiedContacts = [...chatList].map((c) => ({
-    ...c,
-    isGroup: Array.isArray(c.members),
-  }));
+  const { chatList } = useContacts();
+  const { isContactsLoading } = useUI();
+
+  const unifiedContacts = useMemo(() => {
+    return [...chatList].map((c) => ({
+      ...c,
+      isGroup: Array.isArray(c.members),
+    }));
+  }, [chatList]);
+
+   console.log(isContactsLoading, "isLoading");
+
   return (
-    <div
-      className={`relative w-full md:w-[35vw] xl:w-[25vw] bg-gray-100 border-r-1 border-gray-300`}
-    >
-      {/* Logo */}
-      <div className="pt-3">
+    <div className="w-full md:w-[35%] xl:w-[25%] bg-gray-100 border-r border-gray-300 flex flex-col h-full">
+      <div className="pt-3 px-4">
         <Logo unifiedContacts={unifiedContacts} />
       </div>
 
-      <div className="my-5">
-        <div className="max-h-[76vh] overflow-y-auto scrollbar-hidden">
+      <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin scrollbar-thumb-gray-300">
+        {isContactsLoading ? (
+          <ChatListSkeleton />
+        ) : (
           <ContactsList contacts={unifiedContacts} />
-        </div>
+        )}
       </div>
     </div>
   );
