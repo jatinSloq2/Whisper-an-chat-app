@@ -1,5 +1,6 @@
 import { useCall } from "@/context/CallContext";
 import { useContacts } from "@/context/ContactContext";
+import { apiClient } from "@/lib/api-client";
 import { AnimatePresence, motion, useMotionValue } from "framer-motion";
 import { Phone, PhoneOff } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -7,10 +8,12 @@ import { useEffect, useState } from "react";
 const IncomingCallUI = () => {
   const { incomingCall, inCall, answerCall, endCall } = useCall();
   const { chatList } = useContacts();
+  const [allUsers, setAllUsers] = useState([]);
+  const [allContacts, setAllContacts] = useState([]);
 
   const [isMobile, setIsMobile] = useState(false);
-  const x = useMotionValue(0); // ✅ Moved before conditional
-  const y = useMotionValue(0); // ✅ Moved before conditional
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
   const callerId = incomingCall?.from;
   const isAnswered = inCall;
@@ -30,9 +33,32 @@ const IncomingCallUI = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMobile, endCall]);
 
+   useEffect(() => {
+    const fetchAllContacts = async () => {
+      try {
+        const { data } = await apiClient.get("/api/auth/allcontacts");
+        setAllContacts(data.allContacts || []);
+      } catch (err) {
+        console.error("❌ Failed to fetch contacts:", err);
+      }
+    };
+
+    const fetchAllUsers = async () => {
+      try {
+        const { data } = await apiClient.get("/api/auth/allusers");
+        setAllUsers(data.allUsers || []);
+      } catch (err) {
+        console.error("❌ Failed to fetch users:", err);
+      }
+    };
+
+    fetchAllContacts();
+    fetchAllUsers();
+  }, []);
+
   if (!incomingCall || !callerId || isAnswered) return null;
 
-  const matchingContact = chatList.find((c) => c.id === callerId);
+  const matchingContact = allContacts.find((c) => c.id === callerId);
   const callerName = matchingContact?.contactName || `+${callerId}`;
 
   console.log("📞 Incoming call from:", callerName);
@@ -121,14 +147,14 @@ const IncomingCallUI = () => {
                 className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center shadow-lg"
                 aria-label="Answer Call"
               >
-                <Phone/>
+                <Phone />
               </button>
               <button
                 onClick={endCall}
                 className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg"
                 aria-label="Reject Call"
               >
-                <PhoneOff/>
+                <PhoneOff />
               </button>
             </div>
           </div>

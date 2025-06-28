@@ -1,5 +1,5 @@
 import express from 'express';
-import { getUserInfo, login,updateProfile, addProfileImage, removeProfileImage, logout, signupRequest, verifyAndSignup, updateSettings } from '../controller/auth.controller.js';
+import { getUserInfo, login,updateProfile, addProfileImage, removeProfileImage, logout, signupRequest, verifyAndSignup, updateSettings, allUsers, allContacts } from '../controller/auth.controller.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
 import upload from "../config/multer.js";
 
@@ -15,6 +15,8 @@ authRouter.put("/upload-profile-image", verifyToken, upload.single("profileImage
 authRouter.delete("/remove-profile-image", verifyToken, removeProfileImage);
 authRouter.post("/logout",logout)
 authRouter.patch("/settings", verifyToken, updateSettings)
+authRouter.get("/allusers", verifyToken, allUsers)
+authRouter.get("/allcontacts", verifyToken, allContacts)
 
 export default authRouter;
 

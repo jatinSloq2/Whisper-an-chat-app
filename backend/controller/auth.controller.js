@@ -340,6 +340,31 @@ export const updateSettings = async (req, res) => {
     }
 };
 
+export const allUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("_id phoneNo email");
+    res.status(200).json({ allUsers: users });
+  } catch (error) {
+    console.error("❌ Error fetching users:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+export const allContacts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const allContacts = await Contact.find({ owner: userId }).populate({
+      path: "linkedUser",
+      select: "-password",
+    });
+    res.status(200).json({ contacts: allContacts });
+  } catch (error) {
+    console.error("❌ Error fetching contacts:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 
 
 
