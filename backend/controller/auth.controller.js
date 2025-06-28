@@ -353,7 +353,7 @@ export const allUsers = async (req, res) => {
 
 export const allContacts = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user.id;
     const allContacts = await Contact.find({ owner: userId }).populate({
       path: "linkedUser",
       select: "-password",
