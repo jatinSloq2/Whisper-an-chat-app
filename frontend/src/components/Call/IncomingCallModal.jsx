@@ -33,7 +33,7 @@ const IncomingCallUI = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isMobile, endCall]);
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchAllContacts = async () => {
       try {
         const { data } = await apiClient.get("/api/auth/allcontacts");
@@ -58,9 +58,12 @@ const IncomingCallUI = () => {
 
   if (!incomingCall || !callerId || isAnswered) return null;
 
-  const matchingContact = allContacts.find((c) => c.id === callerId);
+  const matchingContact = allContacts.find(
+    (c) => c.linkedUser?._id === callerId
+  );
   const matchingUser = allUsers.find((u) => u._id === callerId);
-  const callerName = matchingContact?.contactName || `+91 ${matchingUser?.phoneNo}`;
+  const callerName =
+    matchingContact?.contactName || `+91 ${matchingUser?.phoneNo}`;
 
   console.log("📞 Incoming call from:", callerName);
   if (matchingContact) {
