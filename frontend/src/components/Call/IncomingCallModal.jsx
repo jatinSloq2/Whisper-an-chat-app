@@ -59,7 +59,8 @@ const IncomingCallUI = () => {
   if (!incomingCall || !callerId || isAnswered) return null;
 
   const matchingContact = allContacts.find((c) => c.id === callerId);
-  const callerName = matchingContact?.contactName || `+${callerId}`;
+  const matchingUser = allUsers.find((u) => u._id === callerId);
+  const callerName = matchingContact?.contactName || `+91 ${matchingUser?.phoneNo}`;
 
   console.log("📞 Incoming call from:", callerName);
   if (matchingContact) {

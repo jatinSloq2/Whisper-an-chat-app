@@ -4,6 +4,7 @@ import cloudinary from "../config/cloudinary.js";
 import User from "../models/userModel.js";
 import { sendEmailOtp } from "../utils/emailService.js";
 import { otpStore } from "../utils/otpStore.js";
+import Contact from "../models/contactsModel.js"
 
 export const createToken = (user) => {
     return jwt.sign(
