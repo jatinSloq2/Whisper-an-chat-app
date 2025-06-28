@@ -136,18 +136,6 @@ export const SocketProvider = ({ children }) => {
         unread: !isChatOpen,
         type: "contact",
       });
-
-      const shouldRefetch =
-        !socketRef.current.contactsCache ||
-        !socketRef.current.contactsCache.includes(contactId);
-      if (shouldRefetch) {
-        fetchChatList().then(() => {
-          socketRef.current.contactsCache = [
-            ...(socketRef.current.contactsCache || []),
-            contactId,
-          ];
-        });
-      }
     });
 
     socket.on("receive-group-message", (message) => {
@@ -222,8 +210,6 @@ export const SocketProvider = ({ children }) => {
         unread: !isChatOpen,
         type: "group",
       });
-
-      fetchChatList();
     });
 
     return () => {
