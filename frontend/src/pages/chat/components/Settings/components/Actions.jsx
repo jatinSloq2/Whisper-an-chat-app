@@ -14,7 +14,7 @@ import { LogOut, Trash2 } from "lucide-react";
 
 const SettingsActions = ({ logout, deleteAccount }) => {
   return (
-    <div className="w-full max-w-[500px] mx-auto px-6 pt-6 pb-8">
+    <div className="w-full max-w-[500px] mx-auto px-6 pt-6 pb-8 z-200">
       <div className="flex flex-col sm:flex-row gap-4">
         {/* 🔓 Logout */}  
         <AlertDialog>

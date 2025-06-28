@@ -127,13 +127,12 @@ export const login = async (req, res) => {
 
         res.cookie("jwt", token, {
             httpOnly: true,
-            maxAge: maxAge * 1000,
-            sameSite: "none",
             secure: true,
+            sameSite: "Lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            path: '/',
         });
-        
-        // secure: process.env.NODE_ENV === "production",
-        // sameSite: "strict",
+
         res.status(200).json({
             message: "Login successful",
             user: {
@@ -246,11 +245,10 @@ export const removeProfileImage = async (req, res) => {
 }
 export const logout = (req, res) => {
     try {
-        res.clearCookie("jwt", "", {
+        res.clearCookie("jwt", {
             httpOnly: true,
-            secure: false,
+            secure: true,
             sameSite: "Lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/',
         });
         return res.status(200).json({ message: "Logged out successfully" });

@@ -41,7 +41,6 @@ const Settings_container = () => {
   const [initialSettings, setInitialSettings] = useState(null);
   const [hasChanged, setHasChanged] = useState(false);
 
-  // ⏳ Sync initial values when userInfo is loaded
   useEffect(() => {
     if (userInfo && userInfo.settings) {
       const init = {
@@ -58,7 +57,6 @@ const Settings_container = () => {
     }
   }, [userInfo]);
 
-  // 🔁 Detect change
   useEffect(() => {
     if (!initialSettings) return;
 
@@ -126,6 +124,7 @@ const Settings_container = () => {
   const logout = async () => {
     try {
       const res = await apiClient.post(LOGOUT_ROUTES);
+
       if (res.status === 200) {
         window.location.href = "/auth";
       }
@@ -133,14 +132,13 @@ const Settings_container = () => {
       console.log(error);
     }
   };
-
-  console.log(userInfo);
+  
   const deleteAccount = async () => {
     alert("Delete Logic here");
   };
 
   return (
-    <div className="fixed inset-0 md:static md:flex-1 bg-gray-100 text-black">
+    <div className="fixed inset-0 md:static md:flex-1 bg-gray-100 text-black z-10">
       <div className="relative flex flex-col h-full w-full">
         <Button
           variant="ghost"
@@ -256,7 +254,7 @@ const Settings_container = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div> 
   );
 };
 
