@@ -203,55 +203,55 @@ export const updateProfile = async (req, res) => {
     }
 }
 export const addProfileImage = async (req, res) => {
-  try {
-    if (!req.file || !req.file.path) {
-      return res.status(400).json({ message: "No file uploaded" });
+    try {
+        if (!req.file || !req.file.path) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+        const imageUrl = req.file.path;
+        const publicId = req.file.filename;
+        const updatedUser = await User.findByIdAndUpdate(
+            req.userId,
+            {
+                image: imageUrl,
+                imagePublicId: publicId,
+            },
+            { new: true, runValidators: true }
+        );
+        return res.status(200).json({
+            image: updatedUser.image,
+        });
+    } catch (error) {
+        console.error("Error uploading profile image:", error);
+        return res.status(500).json({ message: "Server error" });
     }
-    const imageUrl = req.file.path; 
-    const publicId = req.file.filename; 
-    const updatedUser = await User.findByIdAndUpdate(
-      req.userId,
-      {
-        image: imageUrl,
-        imagePublicId: publicId, 
-      },
-      { new: true, runValidators: true }
-    );
-    return res.status(200).json({
-      image: updatedUser.image,
-    });
-  } catch (error) {
-    console.error("Error uploading profile image:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
 };
 export const removeProfileImage = async (req, res) => {
-  const userId = req.userId;
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    if (user.imagePublicId) {
-      try {
-        await cloudinary.uploader.destroy(user.imagePublicId);
-      } catch (err) {
-        console.warn("Cloudinary deletion failed:", err.message);
-      }
-    }
-    user.image = "uploads/profiles/profile-picture.png";
-    user.imagePublicId = "";
+    const userId = req.userId;
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        if (user.imagePublicId) {
+            try {
+                await cloudinary.uploader.destroy(user.imagePublicId);
+            } catch (err) {
+                console.warn("Cloudinary deletion failed:", err.message);
+            }
+        }
+        user.image = "uploads/profiles/profile-picture.png";
+        user.imagePublicId = "";
 
-    await user.save();
+        await user.save();
 
-    return res.status(200).json({
-      message: "Image removed successfully",
-      image: user.image,
-    });
-  } catch (error) {
-    console.error("Error removing profile image:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
+        return res.status(200).json({
+            message: "Image removed successfully",
+            image: user.image,
+        });
+    } catch (error) {
+        console.error("Error removing profile image:", error);
+        return res.status(500).json({ message: "Server error" });
+    }
 };
 export const logout = (req, res) => {
     try {

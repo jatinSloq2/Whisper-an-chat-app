@@ -121,8 +121,6 @@ const Profile = () => {
   const isDefaultImage =
     userInfo.image === "uploads/profiles/profile-picture.png";
 
-  console.log(isDefaultImage);
-
   return (
     <div className="bg-white min-h-screen flex flex-col items-center justify-center px-4 py-10">
       {/* Back Icon */}

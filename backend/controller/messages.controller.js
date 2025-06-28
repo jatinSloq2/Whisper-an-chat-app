@@ -1,5 +1,3 @@
-import { mkdirSync, renameSync } from "fs";
-import path from "path";
 import Message from "../models/messagesModel.js";
 
 export const getMessages = async (req, res) => {
@@ -27,23 +25,21 @@ export const getMessages = async (req, res) => {
 
 
 export const uploadFile = async (req, res) => {
-  console.log("📥 Route hit with file:", req.file);
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const fileName = `${Date.now()}-${req.file.originalname}`;
-    const newFolder = "uploads/files";
-    const newFilePath = path.join(newFolder, fileName);
+    const fileUrl = req.file.path || req.file.url;
 
-    mkdirSync(newFolder, { recursive: true });
-    renameSync(req.file.path, newFilePath);
-
-    const filePathForClient = newFilePath.replace(/\\/g, "/");
-
-    console.log("✅ File saved at:", filePathForClient);
-    return res.status(200).json({ filePath: filePathForClient });
+    if (!fileUrl) {
+      console.error("❌ Upload failed: file URL not found in req.file");
+      console.log("📦 Full req.file:\n", JSON.stringify(req.file, null, 2));
+      return res.status(500).json({ message: "Upload failed" });
+    }
+    console.log("✅ File saved at:", fileUrl);
+    console.log("📦 Full req.file:\n", JSON.stringify(req.file, null, 2));
+    return res.status(200).json({ filePath: fileUrl });
   } catch (error) {
     console.error("❌ Upload failed:", error);
     return res.status(500).send("Internal Server Error");

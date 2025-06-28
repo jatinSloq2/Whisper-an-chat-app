@@ -205,7 +205,7 @@ const Message_container = () => {
               <>
                 {checkIfImage(message.fileUrl) ? (
                   <img
-                    src={`${HOST}/${message.fileUrl}`}
+                    src={`${message.fileUrl}`}
                     alt="sent"
                     className="rounded-md max-w-[250px] cursor-pointer"
                     onClick={() => {

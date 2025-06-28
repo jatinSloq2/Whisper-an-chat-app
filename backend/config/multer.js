@@ -5,12 +5,15 @@ import cloudinary from "./cloudinary.js";
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
-    folder: "chat_profile_images",
-    allowed_formats: ["jpg", "jpeg", "png"],
-    transformation: [{ width: 500, height: 500, crop: "limit" }],
+    folder: "chat_uploads",
+    resource_type: "auto",
+    allowed_formats: [
+      "jpg", "jpeg", "png", "webp", "gif", "bmp",
+      "mp4", "webm", "mov",
+      "pdf", "docx", "txt", "zip"
+    ],
   },
 });
 
 const upload = multer({ storage });
-
 export default upload;

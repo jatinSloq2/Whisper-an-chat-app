@@ -1,22 +1,23 @@
-import { useSocket } from "@/context/socketContext";
-import { useAppStore } from "@/store";
 import { useMessages } from "@/context/MessagesContext";
+import { useSocket } from "@/context/socketContext";
+import { apiClient } from "@/lib/api-client";
+import { useAppStore } from "@/store";
+import { UPLOAD_FILE } from "@/utils/constant";
 import EmojiPicker from "emoji-picker-react";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GrAttachment } from "react-icons/gr";
 import { IoSend } from "react-icons/io5";
 import { RiEmojiStickerLine } from "react-icons/ri";
-import { apiClient } from "@/lib/api-client";
-import { UPLOAD_FILE } from "@/utils/constant";
 
 const Message_bar = () => {
   const emojiRef = useRef();
   const fileInputRef = useRef();
   const socket = useSocket();
   const { userInfo } = useAppStore();
-  const { chatType, chatData } = useMessages();
   const [message, setMessage] = useState("");
   const [showEmojiPickerOpen, setShowEmojiPickerOpen] = useState(false);
+  const { setIsUploading, setFileUploadProgress, chatType, chatData } =
+    useMessages();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -68,29 +69,50 @@ const Message_bar = () => {
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
-        const res = await apiClient.post(UPLOAD_FILE, formData);
+
+        // Start uploading
+        setIsUploading(true);
+        setFileUploadProgress(0);
+
+        const res = await apiClient.post(UPLOAD_FILE, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setFileUploadProgress(percentCompleted);
+          },
+        });
+
         if (res.status === 200 && res.data) {
+          const fileUrl = res.data.filePath;
+
           if (chatType === "contact") {
             socket.emit("sendMessage", {
               sender: userInfo.id,
               content: undefined,
               recipient: chatData._id,
               messageType: "file",
-              fileUrl: res.data.filePath,
+              fileUrl,
             });
           } else if (chatType === "group") {
             socket.emit("send-group-message", {
               sender: userInfo.id,
               content: undefined,
               messageType: "file",
-              fileUrl: res.data.filePath,
+              fileUrl,
               groupId: chatData._id,
             });
           }
         }
       }
     } catch (error) {
-      console.log(error);
+      console.error("Upload failed:", error);
+    } finally {
+      setIsUploading(false);
+      setFileUploadProgress(0);
     }
   };
 
