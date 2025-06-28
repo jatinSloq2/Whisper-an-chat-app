@@ -34,9 +34,10 @@ const Settings_container = () => {
   } = useSettings();
 
   const navigate = useNavigate();
-
+  const isDefaultImage =
+    userInfo.image === "uploads/profiles/profile-picture.png";
   const fullName = `${userInfo.firstName?.trim()} ${userInfo.lastName?.trim()}`;
-  const profileImage = `${HOST}/${userInfo.image}`;
+  const profileImage = isDefaultImage ? `${HOST}/uploads/profiles/profile-picture.png` : userInfo.image;
 
   const [initialSettings, setInitialSettings] = useState(null);
   const [hasChanged, setHasChanged] = useState(false);
@@ -132,7 +133,7 @@ const Settings_container = () => {
       console.log(error);
     }
   };
-  
+
   const deleteAccount = async () => {
     alert("Delete Logic here");
   };
@@ -254,7 +255,7 @@ const Settings_container = () => {
           </div>
         </div>
       </div>
-    </div> 
+    </div>
   );
 };
 

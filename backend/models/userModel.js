@@ -30,6 +30,7 @@ const userSchema = new Schema({
         required: false,
         default: "uploads/profiles/profile-picture.png"
     },
+    imagePublicId: { type: String },
     color: {
         type: Number,
         required: false

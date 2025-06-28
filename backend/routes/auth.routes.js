@@ -1,10 +1,9 @@
 import express from 'express';
 import { getUserInfo, login,updateProfile, addProfileImage, removeProfileImage, logout, signupRequest, verifyAndSignup, updateSettings } from '../controller/auth.controller.js';
 import { verifyToken } from '../middlewares/authMiddleware.js';
-import multer from 'multer';
+import upload from "../config/multer.js";
 
 const authRouter = express.Router();
-export const upload = multer({ dest: 'uploads/profiles/' });
 
 
 authRouter.post("/signup-request", signupRequest);

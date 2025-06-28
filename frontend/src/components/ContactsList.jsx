@@ -57,7 +57,11 @@ const ContactsList = ({ contacts }) => {
               <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-sm">
                 {contact.image ? (
                   <AvatarImage
-                    src={`${HOST}/${contact.image}`}
+                    src={
+                      contact.image === "uploads/profiles/profile-picture.png"
+                        ? `${HOST}/uploads/profiles/profile-picture.png`
+                        : contact.image
+                    }
                     alt="profile"
                     className="object-cover h-full w-full"
                   />

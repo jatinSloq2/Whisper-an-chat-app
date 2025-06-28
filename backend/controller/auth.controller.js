@@ -1,11 +1,10 @@
-import jwt from "jsonwebtoken";
-import User from "../models/userModel.js";
-import { otpStore } from "../utils/otpStore.js";
 import bcryptjs from "bcryptjs";
-import { renameSync, unlinkSync } from "fs";
+import jwt from "jsonwebtoken";
+import cloudinary from "../config/cloudinary.js";
+import User from "../models/userModel.js";
 import { sendEmailOtp } from "../utils/emailService.js";
+import { otpStore } from "../utils/otpStore.js";
 
-const maxAge = 3 * 24 * 60 * 60;
 export const createToken = (user) => {
     return jwt.sign(
         {
@@ -204,44 +203,56 @@ export const updateProfile = async (req, res) => {
     }
 }
 export const addProfileImage = async (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ message: "No file uploaded" });
-        }
-        const date = new Date();
-        const fileName = "uploads/profiles/" + date.getTime() + "-" + req.file.originalname;
-        renameSync(req.file.path, fileName);
-        const updatedUser = await User.findByIdAndUpdate(req.userId, {
-            image: fileName
-        }, { new: true, runValidators: true });
-
-        return res.status(200).json({
-            image: updatedUser.image,
-        })
-
-    } catch (error) {
-        console.error("Error uploading profile image:", error);
-        return res.status(500).json({ message: "Server error" });
+  try {
+    if (!req.file || !req.file.path) {
+      return res.status(400).json({ message: "No file uploaded" });
     }
+    const imageUrl = req.file.path; 
+    const publicId = req.file.filename; 
+    const updatedUser = await User.findByIdAndUpdate(
+      req.userId,
+      {
+        image: imageUrl,
+        imagePublicId: publicId, 
+      },
+      { new: true, runValidators: true }
+    );
+    return res.status(200).json({
+      image: updatedUser.image,
+    });
+  } catch (error) {
+    console.error("Error uploading profile image:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 export const removeProfileImage = async (req, res) => {
-    const userId = req.userId;
-    try {
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        user.image = 'uploads/profiles/profile-picture.png';
-        await user.save()
-        return res.status(200).json({
-            message: "Image removed succesfully"
-        })
-    } catch (error) {
-        console.error("Error removing profile image:", error);
-        return res.status(500).json({ message: "Server error" });
-
+  const userId = req.userId;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-}
+    if (user.imagePublicId) {
+      try {
+        await cloudinary.uploader.destroy(user.imagePublicId);
+      } catch (err) {
+        console.warn("Cloudinary deletion failed:", err.message);
+      }
+    }
+    user.image = "uploads/profiles/profile-picture.png";
+    user.imagePublicId = "";
+
+    await user.save();
+
+    return res.status(200).json({
+      message: "Image removed successfully",
+      image: user.image,
+    });
+  } catch (error) {
+    console.error("Error removing profile image:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 export const logout = (req, res) => {
     try {
         res.clearCookie("jwt", {

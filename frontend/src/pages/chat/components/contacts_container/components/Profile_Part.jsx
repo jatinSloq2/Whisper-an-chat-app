@@ -15,7 +15,7 @@ import { IoPowerSharp } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 
 const Profile_Part = () => {
-  const { userInfo, setUserInfo } = useAppStore();
+  const { userInfo} = useAppStore();
   const navigate = useNavigate();
 
   const logout = async () => {

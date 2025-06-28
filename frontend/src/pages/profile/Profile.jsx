@@ -18,7 +18,7 @@ import {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { userInfo, setUserInfo , fetchUserInfo } = useAppStore();
+  const { userInfo, setUserInfo, fetchUserInfo } = useAppStore();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [image, setImage] = useState(null);
@@ -31,13 +31,9 @@ const Profile = () => {
       setFirstName(userInfo.firstName || "");
       setLastName(userInfo.lastName || "");
       setSelectedColor(userInfo.color ?? 0);
-
     }
     if (userInfo.image) {
-      const parts = userInfo.image.split("/");
-      const encodedFileName = encodeURIComponent(parts.pop());
-      const cleanPath = parts.join("/");
-      setImage(`${HOST}/${cleanPath}/${encodedFileName}`);
+      setImage(userInfo.image);
     }
   }, [
     userInfo.firstName,
@@ -94,21 +90,14 @@ const Profile = () => {
 
     try {
       const res = await apiClient.put(UPLOAD_PROFILE_IMAGE, formData);
-      console.log(res);
-
       if (res.status === 200 && res.data?.image) {
         setUserInfo((prev) => ({
           ...prev,
           image: res.data.image,
         }));
 
-        const imagePath = res.data.image;
-        const parts = imagePath.split("/");
-        const cleanPath = parts.join("/");
-        const encodedFileName = encodeURIComponent(parts.pop());
-        setImage(`${HOST}/${cleanPath}/${encodedFileName}`);
+        setImage(res.data.image);
         toast.success("Image uploaded successfully");
-        console.log("image", image);
       }
     } catch (error) {
       console.error("Error uploading image:", error);
@@ -116,12 +105,11 @@ const Profile = () => {
     }
   };
 
-  
   const handleDeleteImage = async () => {
     try {
       const res = await apiClient.delete(REMOVE_PROFILEIMAGE);
       if (res.status === 200) {
-        fetchUserInfo()
+        fetchUserInfo();
         toast.success("Image Removed Successfully");
       }
     } catch (error) {
@@ -130,99 +118,102 @@ const Profile = () => {
     }
   };
 
- return (
-  <div className="bg-white min-h-screen flex flex-col items-center justify-center px-4 py-10">
-    {/* Back Icon */}
-    <div className="w-full max-w-5xl mb-8">
-      <IoArrowBack
-        className="text-4xl text-black/80 cursor-pointer"
-        onClick={() => navigate("/chat")}
-      />
-    </div>
+  const isDefaultImage =
+    userInfo.image === "uploads/profiles/profile-picture.png";
 
-    {/* Main Content */}
-    <div className="grid grid-cols-1 md:grid-cols-2 w-full max-w-5xl gap-10">
-      {/* Avatar + Color Picker */}
-      <div className="flex flex-col items-center justify-center gap-6">
-        {/* Avatar */}
-        <div
-          className="relative"
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-        >
-          <Avatar className="h-48 w-48 rounded-full overflow-hidden border-4 border-purple-500">
-            <AvatarImage
-              src={image}
-              alt="profile-photo"
-              className="object-cover h-full w-full bg-gray-200"
-            />
-          </Avatar>
+  console.log(isDefaultImage);
 
-          {/* Hover Overlay */}
-          {hovered && (
-            <div
-              className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full"
-              onClick={
-                image !== `${HOST}/uploads/profiles/profile-picture.png`
-                  ? handleDeleteImage
-                  : handleFileInputClick
-              }
-            >
-              {image !== `${HOST}/uploads/profiles/profile-picture.png` ? (
-                <FaTrash className="text-white text-3xl cursor-pointer" />
-              ) : (
-                <FaPlus className="text-white text-3xl cursor-pointer" />
-              )}
-            </div>
-          )}
+  return (
+    <div className="bg-white min-h-screen flex flex-col items-center justify-center px-4 py-10">
+      {/* Back Icon */}
+      <div className="w-full max-w-5xl mb-8">
+        <IoArrowBack
+          className="text-4xl text-black/80 cursor-pointer"
+          onClick={() => navigate("/chat")}
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className="grid grid-cols-1 md:grid-cols-2 w-full max-w-5xl gap-10">
+        {/* Avatar + Color Picker */}
+        <div className="flex flex-col items-center justify-center gap-6">
+          {/* Avatar */}
+          <div
+            className="relative"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          >
+            <Avatar className="h-48 w-48 rounded-full overflow-hidden border-4 border-purple-500">
+              <AvatarImage
+                src={
+                  image === "uploads/profiles/profile-picture.png"
+                    ? `${HOST}/uploads/profiles/profile-picture.png`
+                    : image
+                }
+                alt="profile-photo"
+                className="object-cover h-full w-full bg-gray-200"
+              />
+            </Avatar>
+
+            {/* Hover Overlay */}
+            {hovered && (
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full"
+                onClick={
+                  isDefaultImage ? handleFileInputClick : handleDeleteImage
+                }
+              >
+                {isDefaultImage ? (
+                  <FaPlus className="text-white text-3xl cursor-pointer" />
+                ) : (
+                  <FaTrash className="text-white text-3xl cursor-pointer" />
+                )}
+              </div>
+            )}
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={imageChangeHandler}
+            name="profileImage"
+            accept=".png, .jpg, .jpeg, .svg, .webp"
+          />
         </div>
-        <input
-          type="file"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={imageChangeHandler}
-          name="profileImage"
-          accept=".png, .jpg, .jpeg, .svg, .webp"
-        />
-      </div>
 
-      {/* Form Fields */}
-      <div className="flex flex-col justify-center gap-6 text-black">
-        <Input
-          placeholder="Email"
-          value={userInfo.email}
-          disabled
-          className="rounded-full p-5 bg-gray-100 border border-gray-300 text-black"
-        />
-        <Input
-          placeholder="Phone No"
-          value={userInfo.phoneNo}
-          disabled
-          className="rounded-full p-5 bg-gray-100 border border-gray-300 text-black"
-        />
-        <Input
-          placeholder="First Name"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          className="rounded-full px-6 py-4"
-        />
-        <Input
-          placeholder="Last Name"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          className="rounded-full px-6 py-4"
-        />
-        <Button
-          className="rounded-full p-6"
-          onClick={saveChanges}
-        >
-          Save Changes
-        </Button>
+        {/* Form Fields */}
+        <div className="flex flex-col justify-center gap-6 text-black">
+          <Input
+            placeholder="Email"
+            value={userInfo.email}
+            disabled
+            className="rounded-full p-5 bg-gray-100 border border-gray-300 text-black"
+          />
+          <Input
+            placeholder="Phone No"
+            value={userInfo.phoneNo}
+            disabled
+            className="rounded-full p-5 bg-gray-100 border border-gray-300 text-black"
+          />
+          <Input
+            placeholder="First Name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="rounded-full px-6 py-4"
+          />
+          <Input
+            placeholder="Last Name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="rounded-full px-6 py-4"
+          />
+          <Button className="rounded-full p-6" onClick={saveChanges}>
+            Save Changes
+          </Button>
+        </div>
       </div>
     </div>
-  </div>
-);
-
+  );
 };
 
 export default Profile;
