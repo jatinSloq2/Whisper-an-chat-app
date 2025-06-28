@@ -1,6 +1,7 @@
 import { useCall } from "@/context/CallContext";
 import { useContacts } from "@/context/ContactContext";
 import { AnimatePresence, motion, useMotionValue } from "framer-motion";
+import { Phone, PhoneOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const IncomingCallUI = () => {
@@ -89,30 +90,48 @@ const IncomingCallUI = () => {
         )}
 
         {/* Swipe UI for mobile */}
-        {isMobile && (
-          <motion.div
-            className="flex justify-between w-full px-10 mt-10"
-            drag="y"
-            dragConstraints={{ top: -100, bottom: 100 }}
-            onDragEnd={(e, info) => {
-              if (!incomingCall || isAnswered) return;
-              if (info.offset.y < -80) answerCall(incomingCall);
-              if (info.offset.y > 80) endCall();
-            }}
-          >
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full bg-green-500 text-white flex items-center justify-center text-xl">
-                ↑
-              </div>
-              <span className="mt-1 text-sm">Answer</span>
+        {isMobile && incomingCall && !isAnswered && (
+          <div className="flex flex-col items-center justify-center w-full h-full px-6 py-10 bg-black text-white">
+            {/* Caller Image */}
+            <div className="w-28 h-28 rounded-full overflow-hidden border-4 border-white shadow-md mb-4">
+              <img
+                src={incomingCall.avatar || "/default-avatar.png"}
+                alt="Caller Avatar"
+                className="w-full h-full object-cover"
+              />
             </div>
-            <div className="flex flex-col items-center">
-              <div className="w-14 h-14 rounded-full bg-red-500 text-white flex items-center justify-center text-xl">
-                ↓
-              </div>
-              <span className="mt-1 text-sm">Reject</span>
+
+            {/* Caller Info */}
+            <p className="text-xl font-semibold">
+              {incomingCall.name || "Unknown Caller"}
+            </p>
+            <p className="text-gray-400 text-sm mb-8">Incoming Call...</p>
+
+            {/* Static Message Box */}
+            <div className="w-full bg-white text-black rounded-xl p-3 mb-6">
+              <p className="text-sm font-medium">
+                "Hey, can’t talk right now. What's up?"
+              </p>
             </div>
-          </motion.div>
+
+            {/* Buttons */}
+            <div className="flex justify-between gap-10">
+              <button
+                onClick={() => answerCall(incomingCall)}
+                className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center shadow-lg"
+                aria-label="Answer Call"
+              >
+                <Phone/>
+              </button>
+              <button
+                onClick={endCall}
+                className="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center shadow-lg"
+                aria-label="Reject Call"
+              >
+                <PhoneOff/>
+              </button>
+            </div>
+          </div>
         )}
       </motion.div>
     </AnimatePresence>
