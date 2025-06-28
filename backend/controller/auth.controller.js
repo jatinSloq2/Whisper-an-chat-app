@@ -103,7 +103,6 @@ export const verifyAndSignup = async (req, res) => {
     }
 };
 export const login = async (req, res) => {
-    console.log("first")
     try {
         const { identifier, password } = req.body;
 
@@ -128,7 +127,7 @@ export const login = async (req, res) => {
         res.cookie("jwt", token, {
             httpOnly: true,
             secure: true,
-            sameSite: "Lax",
+            sameSite: "None",
             maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/',
         });
@@ -248,7 +247,7 @@ export const logout = (req, res) => {
         res.clearCookie("jwt", {
             httpOnly: true,
             secure: true,
-            sameSite: "Lax",
+            sameSite: "None",
             path: '/',
         });
         return res.status(200).json({ message: "Logged out successfully" });
