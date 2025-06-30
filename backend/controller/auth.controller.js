@@ -343,7 +343,7 @@ export const updateSettings = async (req, res) => {
 
 export const allUsers = async (req, res) => {
   try {
-    const users = await User.find().select("_id phoneNo email");
+    const users = await User.find().select("_id phoneNo email image");
     res.status(200).json({ allUsers: users });
   } catch (error) {
     console.error("❌ Error fetching users:", error.message);
