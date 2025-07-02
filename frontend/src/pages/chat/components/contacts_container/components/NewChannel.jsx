@@ -169,7 +169,7 @@ const NewChannel = ({ trigger }) => {
                   >
                     {contact.image ? (
                       <img
-                        src={`${HOST}/${contact.image}`}
+                        src={`${contact.image}`}
                         alt={contact.label}
                         className="w-10 h-10 rounded-full object-cover border"
                       />
