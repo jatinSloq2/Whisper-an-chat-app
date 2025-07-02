@@ -1,26 +1,25 @@
-import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import MultipleSelector from "@/components/ui/multipleselect";
+import { useContacts } from "@/context/ContactContext";
 import { apiClient } from "@/lib/api-client";
 import { CREATE_NEW_GROUP, GET_ALL_CONTACTS, HOST } from "@/utils/constant";
-import { useContacts } from "@/context/ContactContext";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const NewChannel = ({ trigger }) => {
-  const {fetchChatList } = useContacts();
+  const { fetchChatList } = useContacts();
   const [open, setOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [allContacts, setAllContacts] = useState([]);
@@ -65,7 +64,7 @@ const NewChannel = ({ trigger }) => {
         setOpen(false);
       }
       // fetchGroups()
-      fetchChatList()
+      fetchChatList();
     } catch (error) {
       console.error("Error creating group:", error);
       toast.error("Failed to create group.");
@@ -121,7 +120,7 @@ const NewChannel = ({ trigger }) => {
                   >
                     {contact.image ? (
                       <img
-                        src={`${HOST}/${contact.image}`}
+                        src={`${contact.image}`}
                         alt={contact.label}
                         className="w-6 h-6 rounded-full"
                       />

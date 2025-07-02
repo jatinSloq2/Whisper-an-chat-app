@@ -75,7 +75,7 @@ const Auth = () => {
 
   const handleLogin = async () => {
     if (!validateLogin()) return;
-
+    isLoadingOtp(true)
     try {
       const res = await apiClient.post(LOGIN_ROUTES, {
         identifier: identifier,
@@ -102,6 +102,8 @@ const Auth = () => {
       const message =
         error.response?.data?.message || "Login failed. Please try again.";
       toast.error(message);
+    } finally {
+    isLoadingOtp(false)
     }
   };
 
@@ -216,8 +218,17 @@ const Auth = () => {
                     className="rounded-full px-6 py-4"
                   />
                   <Button className="rounded-full p-6" onClick={handleLogin}>
-                    Login
+                    {isLoadingOtp ? "Logging you in..." : "Login"}
                   </Button>
+                   {isLoadingOtp && (
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-gray-500">
+                        Logging you in... please wait
+                      </p>
+                    </div>
+                  )}
+                  
                   <button
                     onClick={() => {
                       setShowForgotPassword(true);
