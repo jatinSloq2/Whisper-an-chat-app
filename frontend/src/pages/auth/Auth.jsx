@@ -204,7 +204,7 @@ const Auth = () => {
               {!showForgotPassword ? (
                 <>
                   <Input
-                    placeholder="Email"
+                    placeholder="Enter your email or phone"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     type="email"
