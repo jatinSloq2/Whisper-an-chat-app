@@ -75,7 +75,7 @@ const Auth = () => {
 
   const handleLogin = async () => {
     if (!validateLogin()) return;
-    isLoadingOtp(true)
+    setIsLoadingOtp(true)
     try {
       const res = await apiClient.post(LOGIN_ROUTES, {
         identifier: identifier,
@@ -103,7 +103,7 @@ const Auth = () => {
         error.response?.data?.message || "Login failed. Please try again.";
       toast.error(message);
     } finally {
-    isLoadingOtp(false)
+    setIsLoadingOtp(false)
     }
   };
 
