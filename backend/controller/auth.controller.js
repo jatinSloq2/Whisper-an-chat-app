@@ -17,16 +17,26 @@ export const createToken = (user) => {
         { expiresIn: "3d" }
     );
 };
+
 export const signupRequest = async (req, res) => {
     try {
         let { email, phoneNo, password } = req.body;
+
         if (!phoneNo) return res.status(400).json({ message: "Phone number is required" });
-        if (!email) return res.status(400).json({ message: "Email is required" });
         if (!password) return res.status(400).json({ message: "Password is required" });
+
+        // Check if email is provided
+        if (!email) {
+            return res.status(400).json({ message: "No email connected, can't send message" });
+        }
+
         phoneNo = phoneNo.trim();
+        email = email.trim();
+
         if (!/^\d{10}$/.test(phoneNo)) {
             return res.status(400).json({ message: "Invalid phone number format" });
         }
+
         const existingUserEmail = await User.findOne({ email });
         if (existingUserEmail) {
             return res.status(400).json({ message: "Email already exists" });
@@ -36,34 +46,45 @@ export const signupRequest = async (req, res) => {
         if (existingUserPhone) {
             return res.status(400).json({ message: "Phone number already exists" });
         }
+
+        // Generate only email OTP
         const emailOTP = Math.floor(100000 + Math.random() * 900000).toString();
-        const phoneOTP = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = Date.now() + 5 * 60 * 1000;
 
         otpStore[email] = {
             phoneNo,
             password,
             emailOTP,
-            phoneOTP,
             expiresAt,
         };
-        const fullPhoneNo = `+91${phoneNo}`;
+
+        // Send OTP only to email
         await sendEmailOtp(email, emailOTP);
-        //  ⚠️ TODO: REMOVE OTPs FROM RESPONSE BEFORE DEPLOYMENT
-        // await sendSmsOtp(fullPhoneNo, phoneOTP);
-        return res.status(200).json({ message: `OTP sent to email and phone emailOTP :${emailOTP} PhoneOTP:${phoneOTP} ` });
+
+        // Don't include OTP in response
+        return res.status(200).json({
+            message: "OTP sent to email successfully"
+        });
     } catch (error) {
         console.error("Signup request error:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 };
+
 export const verifyAndSignup = async (req, res) => {
     try {
-        let { email, emailOTP, phoneOTP } = req.body;
+        let { email, emailOTP } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+
+        if (!emailOTP) {
+            return res.status(400).json({ message: "OTP is required" });
+        }
 
         email = email.trim();
         emailOTP = emailOTP.trim().toString();
-        phoneOTP = phoneOTP.trim().toString();
 
         const entry = otpStore[email];
 
@@ -77,12 +98,17 @@ export const verifyAndSignup = async (req, res) => {
             return res.status(400).json({ message: "OTP expired" });
         }
 
-        if (entry.emailOTP.toString() !== emailOTP || entry.phoneOTP.toString() !== phoneOTP) {
-            console.warn("❌ Invalid OTPs provided");
-            return res.status(400).json({ message: "Invalid OTPs provided" });
+        if (entry.emailOTP.toString() !== emailOTP) {
+            console.warn("❌ Invalid OTP provided");
+            return res.status(400).json({ message: "Invalid OTP provided" });
         }
 
-        const newUser = User.create({ email, phoneNo: entry.phoneNo, password: entry.password, });
+        const newUser = await User.create({
+            email,
+            phoneNo: entry.phoneNo,
+            password: entry.password,
+        });
+
         delete otpStore[email];
 
         return res.status(201).json({
@@ -102,6 +128,7 @@ export const verifyAndSignup = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
+
 export const login = async (req, res) => {
     try {
         const { identifier, password } = req.body;
@@ -150,6 +177,7 @@ export const login = async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
 export const getUserInfo = async (req, res) => {
     try {
         const userId = req.userId;
@@ -170,15 +198,14 @@ export const getUserInfo = async (req, res) => {
                 color: user.color || "",
                 settings: user.settings,
                 language: user.language
-
             }
         });
-
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: "Internal server error" });
     }
 }
+
 export const updateProfile = async (req, res) => {
     console.log("User ID:", req.userId);
     try {
@@ -197,12 +224,12 @@ export const updateProfile = async (req, res) => {
             message: "Profile updated successfully",
             user: userData
         });
-
     } catch (error) {
         console.log(error)
         res.status(500).json({ message: "Internal server error" });
     }
 }
+
 export const addProfileImage = async (req, res) => {
     try {
         if (!req.file || !req.file.path) {
@@ -226,6 +253,7 @@ export const addProfileImage = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
 export const removeProfileImage = async (req, res) => {
     const userId = req.userId;
     try {
@@ -254,6 +282,7 @@ export const removeProfileImage = async (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
 export const logout = (req, res) => {
     try {
         res.clearCookie("jwt", {
@@ -268,6 +297,7 @@ export const logout = (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 };
+
 export const updateSettings = async (req, res) => {
     const userId = req.userId;
     const { settings, language } = req.body;
@@ -291,7 +321,6 @@ export const updateSettings = async (req, res) => {
 
         let isChanged = false;
 
-        // Detect and update changed settings
         if (settings.sound !== undefined && settings.sound !== original.sound) {
             user.settings.sound = settings.sound;
             isChanged = true;
@@ -342,82 +371,25 @@ export const updateSettings = async (req, res) => {
 };
 
 export const allUsers = async (req, res) => {
-  try {
-    const users = await User.find().select("_id phoneNo email image");
-    res.status(200).json({ allUsers: users });
-  } catch (error) {
-    console.error("❌ Error fetching users:", error.message);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
+    try {
+        const users = await User.find().select("_id phoneNo email image");
+        res.status(200).json({ allUsers: users });
+    } catch (error) {
+        console.error("❌ Error fetching users:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
 };
-
 
 export const allContacts = async (req, res) => {
-  try {
-    const userId = req.userId;
-    const allContacts = await Contact.find({ owner: userId }).populate({
-      path: "linkedUser",
-      select: "-password",
-    });
-    res.status(200).json({ contacts: allContacts });
-  } catch (error) {
-    console.error("❌ Error fetching contacts:", error.message);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
+    try {
+        const userId = req.userId;
+        const allContacts = await Contact.find({ owner: userId }).populate({
+            path: "linkedUser",
+            select: "-password",
+        });
+        res.status(200).json({ contacts: allContacts });
+    } catch (error) {
+        console.error("❌ Error fetching contacts:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// export const signup = async (req, res) => {
-//     try {
-//         const { email, phoneNo, password } = req.body;
-
-//         if (!email || !password || !phoneNo) {
-//             return res.status(400).json({ message: "Email, phone number, and password are required" });
-//         }
-//         const existingEmail = await User.findOne({ email });
-//         if (existingEmail) {
-//             return res.status(400).json({ message: "Email already in use" });
-//         }
-//         const existingPhone = await User.findOne({ phoneNo });
-//         if (existingPhone) {
-//             return res.status(400).json({ message: "Phone number already in use" });
-//         }
-//         const newUser = await User.create({ email, phoneNo, password });
-//         const token = createToken(newUser);
-//         res.cookie("jwt", token, {
-//             httpOnly: true,
-//             maxAge: maxAge * 1000,
-//             secure: process.env.NODE_ENV === "production",
-//             sameSite: "strict"
-//         });
-//         res.status(201).json({
-//             message: "User created successfully",
-//             user: {
-//                 email: newUser.email,
-//                 phoneNo: newUser.phoneNo,
-//                 id: newUser.id,
-//                 firstName: newUser.firstName || "",
-//                 lastName: newUser.lastName || "",
-//                 image: newUser.image || "",
-//                 profileSetup: newUser.profileSetup || false
-//             }
-//         });
-
-//     } catch (error) {
-//         console.error("Signup error:", error);
-//         res.status(500).json({ message: "Internal server error" });
-//     }
-// };

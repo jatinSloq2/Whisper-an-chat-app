@@ -14,6 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAppStore } from "@/store";
 import ForgotPasswordForm from "./components/ForgotPass";
+import { Loader2 } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -21,17 +22,20 @@ const Auth = () => {
 
   const [showOtpForm, setShowOtpForm] = useState(false);
   const [emailOtp, setEmailOtp] = useState("");
-  const [phoneOtp, setPhoneOtp] = useState("");
+  
   // for login
   const [identifier, setIdentifier] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  
   // for signup
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPhone, setSignupPhone] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [isLoadingOtp, setIsLoadingOtp] = useState(false);
+  const [isLoadingLogin, setIsLoadingLogin] = useState(false);
+  const [isLoadingSignup, setIsLoadingSignup] = useState(false);
+  const [isLoadingVerify, setIsLoadingVerify] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -54,6 +58,10 @@ const Auth = () => {
       toast.error("Password is required");
       return false;
     }
+    if (signupPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return false;
+    }
     if (signupPassword !== confirmPassword) {
       toast.error("Passwords do not match");
       return false;
@@ -63,7 +71,7 @@ const Auth = () => {
 
   const validateLogin = () => {
     if (!identifier.length) {
-      toast.error("Email is required");
+      toast.error("Email or phone is required");
       return false;
     }
     if (!loginPassword.length) {
@@ -75,7 +83,7 @@ const Auth = () => {
 
   const handleLogin = async () => {
     if (!validateLogin()) return;
-    setIsLoadingOtp(true)
+    setIsLoadingLogin(true);
     try {
       const res = await apiClient.post(LOGIN_ROUTES, {
         identifier: identifier,
@@ -103,13 +111,13 @@ const Auth = () => {
         error.response?.data?.message || "Login failed. Please try again.";
       toast.error(message);
     } finally {
-    setIsLoadingOtp(false)
+      setIsLoadingLogin(false);
     }
   };
 
   const handleSignup = async () => {
     if (!validateSignup()) return;
-    setIsLoadingOtp(true);
+    setIsLoadingSignup(true);
 
     try {
       const res = await apiClient.post(SIGNUP_REQUEST, {
@@ -126,21 +134,21 @@ const Auth = () => {
       console.error("Signup request error:", error);
       toast.error(error.response?.data?.message || "Signup failed");
     } finally {
-      setIsLoadingOtp(false);
+      setIsLoadingSignup(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (!emailOtp || !phoneOtp) {
-      toast.error("Please enter both OTPs");
+    if (!emailOtp || emailOtp.length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP");
       return;
     }
 
+    setIsLoadingVerify(true);
     try {
       const res = await apiClient.post(OTP_VERIFY_ROUTES, {
         email: signupEmail,
         emailOTP: emailOtp,
-        phoneOTP: phoneOtp,
       });
 
       if (res.status === 201) {
@@ -153,6 +161,8 @@ const Auth = () => {
     } catch (error) {
       console.error("OTP verify error:", error);
       toast.error(error.response?.data?.message || "Verification failed");
+    } finally {
+      setIsLoadingVerify(false);
     }
   };
 
@@ -207,8 +217,9 @@ const Auth = () => {
                     placeholder="Enter your email or phone"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
-                    type="email"
+                    type="text"
                     className="rounded-full px-6 py-4"
+                    disabled={isLoadingLogin}
                   />
                   <Input
                     placeholder="Password"
@@ -216,25 +227,43 @@ const Auth = () => {
                     onChange={(e) => setLoginPassword(e.target.value)}
                     type="password"
                     className="rounded-full px-6 py-4"
+                    disabled={isLoadingLogin}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isLoadingLogin) {
+                        handleLogin();
+                      }
+                    }}
                   />
-                  <Button className="rounded-full p-6" onClick={handleLogin}>
-                    {isLoadingOtp ? "Logging you in..." : "Login"}
+                  <Button 
+                    className="rounded-full p-6" 
+                    onClick={handleLogin}
+                    disabled={isLoadingLogin}
+                  >
+                    {isLoadingLogin ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Logging you in...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
                   </Button>
-                   {isLoadingOtp && (
+                  {isLoadingLogin && (
                     <div className="flex items-center justify-center gap-2 mt-2">
                       <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
                       <p className="text-sm text-gray-500">
-                        Logging you in... please wait
+                        Authenticating... please wait
                       </p>
                     </div>
                   )}
-                  
+
                   <button
                     onClick={() => {
                       setShowForgotPassword(true);
                       setForgotStep(1);
                     }}
-                    className="text-xs font-medium text-purple-500 hover:text-purple-600 transition-colors duration-200 cursor-pointer"
+                    disabled={isLoadingLogin}
+                    className="text-xs font-medium text-purple-500 hover:text-purple-600 transition-colors duration-200 cursor-pointer disabled:opacity-50"
                   >
                     Forgot Password?
                   </button>
@@ -261,11 +290,16 @@ const Auth = () => {
               {!showOtpForm ? (
                 <>
                   <Input
-                    placeholder="Phone"
+                    placeholder="Phone (10 digits)"
                     value={signupPhone}
-                    onChange={(e) => setSignupPhone(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length <= 10) setSignupPhone(value);
+                    }}
                     type="tel"
                     className="rounded-full px-6 py-4"
+                    disabled={isLoadingSignup}
+                    maxLength={10}
                   />
                   <Input
                     placeholder="Email"
@@ -273,13 +307,15 @@ const Auth = () => {
                     onChange={(e) => setSignupEmail(e.target.value)}
                     type="email"
                     className="rounded-full px-6 py-4"
+                    disabled={isLoadingSignup}
                   />
                   <Input
-                    placeholder="Password"
+                    placeholder="Password (min 6 characters)"
                     value={signupPassword}
                     onChange={(e) => setSignupPassword(e.target.value)}
                     type="password"
                     className="rounded-full px-6 py-4"
+                    disabled={isLoadingSignup}
                   />
                   <Input
                     placeholder="Confirm Password"
@@ -287,19 +323,32 @@ const Auth = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     type="password"
                     className="rounded-full px-6 py-4"
+                    disabled={isLoadingSignup}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isLoadingSignup) {
+                        handleSignup();
+                      }
+                    }}
                   />
                   <Button
                     className="rounded-full p-6"
                     onClick={handleSignup}
-                    disabled={isLoadingOtp}
+                    disabled={isLoadingSignup}
                   >
-                    {isLoadingOtp ? "Requesting OTP..." : "Request OTP"}
+                    {isLoadingSignup ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Requesting OTP...
+                      </>
+                    ) : (
+                      "Request OTP"
+                    )}
                   </Button>
-                  {isLoadingOtp && (
+                  {isLoadingSignup && (
                     <div className="flex items-center justify-center gap-2 mt-2">
                       <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
                       <p className="text-sm text-gray-500">
-                        Sending OTP... please wait
+                        Sending OTP to your email...
                       </p>
                     </div>
                   )}
@@ -307,33 +356,57 @@ const Auth = () => {
               ) : (
                 <>
                   <p className="text-center text-sm text-gray-600">
-                    Enter the OTPs sent to your email and phone.
+                    Enter the 6-digit OTP sent to{" "}
+                    <span className="font-semibold text-purple-600">
+                      {signupEmail}
+                    </span>
                   </p>
                   <Input
-                    placeholder="Email OTP"
+                    placeholder="Enter 6-digit OTP"
                     value={emailOtp}
-                    onChange={(e) => setEmailOtp(e.target.value)}
-                    className="rounded-full px-6 py-4"
-                  />
-                  <Input
-                    placeholder="Phone OTP"
-                    value={phoneOtp}
-                    onChange={(e) => setPhoneOtp(e.target.value)}
-                    className="rounded-full px-6 py-4"
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, "");
+                      if (value.length <= 6) setEmailOtp(value);
+                    }}
+                    className="rounded-full px-6 py-4 text-center text-lg tracking-widest"
+                    disabled={isLoadingVerify}
+                    maxLength={6}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !isLoadingVerify) {
+                        handleVerifyOtp();
+                      }
+                    }}
                   />
                   <Button
                     className="rounded-full p-6"
                     onClick={handleVerifyOtp}
+                    disabled={isLoadingVerify}
                   >
-                    Verify & Sign Up
+                    {isLoadingVerify ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify & Sign Up"
+                    )}
                   </Button>
+                  {isLoadingVerify && (
+                    <div className="flex items-center justify-center gap-2 mt-2">
+                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
+                      <p className="text-sm text-gray-500">
+                        Verifying your OTP...
+                      </p>
+                    </div>
+                  )}
                   <Button
                     variant="ghost"
                     className="text-xs bg-white hover:bg-white text-purple-500 hover:text-purple-600 cursor-pointer duration-300 transition-all"
                     onClick={() => {
                       setShowOtpForm(false);
-                      setIsLoadingOtp(false);
+                      setEmailOtp("");
                     }}
+                    disabled={isLoadingVerify}
                   >
                     Back to edit info
                   </Button>
