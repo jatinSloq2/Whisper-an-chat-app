@@ -5,11 +5,13 @@ import NewDm from "@/pages/chat/components/contacts_container/components/NewDm";
 import { HOST } from "@/utils/constant";
 import moment from "moment";
 import { Avatar, AvatarImage } from "./ui/avatar";
+import { MessageSquarePlus, UserPlus } from "lucide-react";
 
 const ContactsList = ({ contacts }) => {
   const { chatData, setChatType, setChatData, setMessages, chatType } =
     useMessages();
   const { setIsSettingsOpen, isSettingsOpen } = useSettings();
+  
   const handleClick = (contact) => {
     setChatType(contact.isGroup ? "group" : "contact");
 
@@ -19,6 +21,47 @@ const ContactsList = ({ contacts }) => {
     }
     setIsSettingsOpen(false);
   };
+
+  // Empty state when no contacts
+  if (!contacts || contacts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full px-6 py-12">
+        <div className="flex flex-col items-center gap-6 max-w-sm text-center">
+          {/* Icon */}
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center">
+              <MessageSquarePlus className="w-12 h-12 text-purple-500" />
+            </div>
+            <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center border-4 border-gray-100">
+              <UserPlus className="w-5 h-5 text-blue-500" />
+            </div>
+          </div>
+
+          {/* Text */}
+          <div className="space-y-2">
+            <h3 className="text-xl font-bold text-gray-800">
+              No Contacts Yet
+            </h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Start connecting with people! Add your first contact to begin
+              chatting.
+            </p>
+          </div>
+        </div>
+
+        {/* NewDm button */}
+        {!chatType && (
+          <div
+            className={`absolute bottom-10 right-5 flex-col gap-4 z-50
+              ${isSettingsOpen ? "hidden md:flex" : "flex"}
+            `}
+          >
+            <NewDm />
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="">
@@ -53,7 +96,6 @@ const ContactsList = ({ contacts }) => {
               }`}
             >
               {/* Avatar */}
-
               <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-sm">
                 {contact.image ? (
                   <AvatarImage
@@ -96,8 +138,8 @@ const ContactsList = ({ contacts }) => {
       {!chatType && (
         <div
           className={`absolute bottom-10 right-5 flex-col gap-4 z-50
-      ${isSettingsOpen ? "hidden md:flex" : "flex"}
-    `}
+            ${isSettingsOpen ? "hidden md:flex" : "flex"}
+          `}
         >
           <NewDm />
         </div>

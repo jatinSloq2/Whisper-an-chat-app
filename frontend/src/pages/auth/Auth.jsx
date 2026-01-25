@@ -248,14 +248,6 @@ const Auth = () => {
                       "Login"
                     )}
                   </Button>
-                  {isLoadingLogin && (
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm text-gray-500">
-                        Authenticating... please wait
-                      </p>
-                    </div>
-                  )}
 
                   <button
                     onClick={() => {
@@ -344,14 +336,6 @@ const Auth = () => {
                       "Request OTP"
                     )}
                   </Button>
-                  {isLoadingSignup && (
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm text-gray-500">
-                        Sending OTP to your email...
-                      </p>
-                    </div>
-                  )}
                 </>
               ) : (
                 <>
@@ -391,14 +375,6 @@ const Auth = () => {
                       "Verify & Sign Up"
                     )}
                   </Button>
-                  {isLoadingVerify && (
-                    <div className="flex items-center justify-center gap-2 mt-2">
-                      <div className="w-5 h-5 border-2 border-purple-400 border-t-transparent rounded-full animate-spin" />
-                      <p className="text-sm text-gray-500">
-                        Verifying your OTP...
-                      </p>
-                    </div>
-                  )}
                   <Button
                     variant="ghost"
                     className="text-xs bg-white hover:bg-white text-purple-500 hover:text-purple-600 cursor-pointer duration-300 transition-all"

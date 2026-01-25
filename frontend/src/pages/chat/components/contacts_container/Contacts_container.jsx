@@ -36,11 +36,3 @@ const Contacts_container = () => {
 };
 
 export default Contacts_container;
-
-const Title = ({ text }) => {
-  return (
-    <h6 className="uppercase tracking-widest text-black font-light pl-10 text-opacity-90 text-sm">
-      {text}
-    </h6>
-  );
-};
