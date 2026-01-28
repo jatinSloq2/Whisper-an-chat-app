@@ -1,18 +1,18 @@
-import express from 'express';
-import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import dotenv from 'dotenv';
+import express from 'express';
 import mongoose from 'mongoose';
 
-import authRouter from './routes/auth.routes.js';
-import forgetPassRouter from './routes/forgetPass.routes.js';
-import contactRouter from './routes/contact.routes.js';
-import msgRouter from './routes/messages.routes.js';
-import groupRouter from './routes/group.routes.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import setupSocket from './socket.js';
+import authRouter from './routes/auth.routes.js';
+import contactRouter from './routes/contact.routes.js';
+import forgetPassRouter from './routes/forgetPass.routes.js';
+import groupRouter from './routes/group.routes.js';
+import msgRouter from './routes/messages.routes.js';
 import callRouter from './routes/xirsys.js';
+import setupSocket from './socket.js';
 
 dotenv.config()
 
