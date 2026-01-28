@@ -11,7 +11,7 @@ const ContactsList = ({ contacts }) => {
   const { chatData, setChatType, setChatData, setMessages, chatType } =
     useMessages();
   const { setIsSettingsOpen, isSettingsOpen } = useSettings();
-  
+
   const handleClick = (contact) => {
     setChatType(contact.isGroup ? "group" : "contact");
 
@@ -21,6 +21,36 @@ const ContactsList = ({ contacts }) => {
     }
     setIsSettingsOpen(false);
   };
+
+  // Function to format the message time
+  const formatMessageTime = (timestamp) => {
+    if (!timestamp) return "";
+
+    const messageDate = moment(timestamp);
+    const today = moment().startOf('day');
+    const yesterday = moment().subtract(1, 'days').startOf('day');
+    const lastWeek = moment().subtract(7, 'days').startOf('day');
+
+    // Today - show time
+    if (messageDate.isSameOrAfter(today)) {
+      return messageDate.format("hh:mm A");
+    }
+
+    // Yesterday
+    if (messageDate.isSameOrAfter(yesterday)) {
+      return "Yesterday";
+    }
+
+    // Last 7 days - show day name
+    if (messageDate.isSameOrAfter(lastWeek)) {
+      return messageDate.format("dddd"); // Monday, Tuesday, etc.
+    }
+
+    // Older than 7 days - show date
+    return messageDate.format("DD/MM/YY");
+  };
+
+  console.log(contacts[1]?.lastMessageTime);
 
   // Empty state when no contacts
   if (!contacts || contacts.length === 0) {
@@ -89,11 +119,10 @@ const ContactsList = ({ contacts }) => {
             <div
               key={index}
               onClick={() => handleClick(contact)}
-              className={`cursor-pointer flex items-center gap-4 px-4 py-3 transition-all duration-200 border-b-1 border-gray-300 ${
-                isActive
+              className={`cursor-pointer flex items-center gap-4 px-4 py-3 transition-all duration-200 border-b-1 border-gray-300 ${isActive
                   ? "bg-purple-500 text-white shadow-sm"
                   : "text-purple-600"
-              }`}
+                }`}
             >
               {/* Avatar */}
               <Avatar className="h-10 w-10 rounded-full border border-white/10 shadow-sm">
@@ -128,9 +157,7 @@ const ContactsList = ({ contacts }) => {
 
               {/* Time */}
               <div className="text-[11px] text-black font-mono">
-                {contact.lastMessageTime
-                  ? moment(contact.lastMessageTime).format("hh:mm A")
-                  : ""}
+                {formatMessageTime(contact.lastMessageTime)}
               </div>
             </div>
           );
