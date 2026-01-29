@@ -26,6 +26,7 @@ const allowedOrigins = [
     "http://localhost:5173",
     "https://whisper-for-chat.netlify.app",
     "https://whisperjs.netlify.app",
+    "https://whisper.jatinsinghdev.tech",
 ];
 app.use(cors({
     origin: function (origin, callback) {
